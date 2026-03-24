@@ -21,7 +21,7 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        var connectionString = configuration.GetConnectionString("Default");
+        var connectionString = configuration["ConnectionStrings:Default"];
         if (!string.IsNullOrEmpty(connectionString))
         {
             services.AddDbContext<AppDbContext>(options =>

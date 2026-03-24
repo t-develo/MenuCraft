@@ -1,9 +1,12 @@
 using System.Net;
+using Azure.Core.Serialization;
 using FluentAssertions;
 using MenuCraft.Api.Functions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace MenuCraft.Api.Tests.Functions;
@@ -22,7 +25,12 @@ public class HealthFunctionTests
     public async Task RunAsync_ReturnsOkWithStatus()
     {
         // Arrange
+        var serviceProvider = new ServiceCollection()
+            .Configure<WorkerOptions>(o => o.Serializer = new JsonObjectSerializer())
+            .BuildServiceProvider();
         var mockContext = new Mock<FunctionContext>();
+        mockContext.Setup(c => c.InstanceServices).Returns(serviceProvider);
+
         var mockRequest = new Mock<HttpRequestData>(mockContext.Object);
         var mockResponse = new Mock<HttpResponseData>(mockContext.Object);
         var memoryStream = new MemoryStream();
