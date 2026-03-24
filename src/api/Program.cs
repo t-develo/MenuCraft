@@ -1,4 +1,6 @@
 using MenuCraft.Api.Data;
+using MenuCraft.Api.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,18 @@ var host = new HostBuilder()
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString));
         }
+
+        services.AddIdentityCore<User>(options =>
+            {
+                options.Password.RequiredLength = 8;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
     })
     .Build();
 
