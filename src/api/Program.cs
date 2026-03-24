@@ -1,5 +1,7 @@
 using MenuCraft.Api.Data;
+using MenuCraft.Api.Middleware;
 using MenuCraft.Api.Models;
+using MenuCraft.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +9,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWebApplication()
+    .ConfigureFunctionsWebApplication(builder =>
+    {
+        builder.UseMiddleware<JwtAuthenticationMiddleware>();
+    })
     .ConfigureServices((context, services) =>
     {
         var configuration = context.Configuration;
@@ -33,6 +38,8 @@ var host = new HostBuilder()
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
+
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
     })
     .Build();
 
