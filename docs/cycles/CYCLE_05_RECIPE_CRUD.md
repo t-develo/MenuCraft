@@ -38,7 +38,7 @@
   - 他グループアクセス拒否
   - 作成 + SourceType 自動判定
   - 削除 (正常 / 他グループ)
-- [ ] `Program.cs` に Recipe サービス登録
+- [x] `Program.cs` に Recipe サービス登録
 
 ## 依存関係
 - Cycle 4（グループ管理、認証済みコンテキスト）
