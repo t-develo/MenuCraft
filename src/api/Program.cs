@@ -44,6 +44,9 @@ var host = new HostBuilder()
 
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IGroupService, GroupService>();
+
+        services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IRecipeService, RecipeService>();
     })
     .Build();
 
