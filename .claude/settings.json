@@ -1,4 +1,14 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(dotnet:*)",
+      "Bash(func:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(git:*)",
+      "Bash(az:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

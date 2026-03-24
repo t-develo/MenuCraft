@@ -8,13 +8,16 @@ fi
 
 echo "SessionStart: setting up MenuCraft environment..."
 
-# -------------------------------------------------------
-# Add dependency installation commands here as the project
-# grows. Examples:
-#
-#   npm install          # Node.js
-#   pip install -r requirements.txt  # Python
-#   bundle install       # Ruby
-# -------------------------------------------------------
+# .NET: restore backend dependencies if project file exists
+if [ -f "$CLAUDE_PROJECT_DIR/src/api/MenuCraft.Api.csproj" ]; then
+  echo "SessionStart: restoring .NET dependencies..."
+  dotnet restore "$CLAUDE_PROJECT_DIR/src/api/"
+fi
+
+# Node.js: install frontend dependencies if package.json exists
+if [ -f "$CLAUDE_PROJECT_DIR/src/client/package.json" ]; then
+  echo "SessionStart: installing frontend npm dependencies..."
+  npm install --prefix "$CLAUDE_PROJECT_DIR/src/client"
+fi
 
 echo "SessionStart: setup complete."
