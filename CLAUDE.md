@@ -1,5 +1,26 @@
 # MenuCraft — Claude Code Instructions
 
+<!-- Rules -->
+@.claude/rules/common/agents.md
+@.claude/rules/common/coding-style.md
+@.claude/rules/common/development-workflow.md
+@.claude/rules/common/git-workflow.md
+@.claude/rules/common/hooks.md
+@.claude/rules/common/patterns.md
+@.claude/rules/common/performance.md
+@.claude/rules/common/security.md
+@.claude/rules/common/testing.md
+@.claude/rules/dotnet/coding-style.md
+@.claude/rules/dotnet/hooks.md
+@.claude/rules/dotnet/patterns.md
+@.claude/rules/dotnet/security.md
+@.claude/rules/dotnet/testing.md
+@.claude/rules/javascript/coding-style.md
+@.claude/rules/javascript/hooks.md
+@.claude/rules/javascript/patterns.md
+@.claude/rules/javascript/security.md
+@.claude/rules/javascript/testing.md
+
 ## Project Overview
 
 **MenuCraft** は、Web / YouTube / Instagram で見つけたレシピを一箇所に集約し、1週間の昼食・夕食の献立を自動＋手動で組み立てられる個人向け献立管理アプリ。買い物リストの自動生成にも対応する。
