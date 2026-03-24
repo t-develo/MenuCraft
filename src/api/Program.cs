@@ -1,6 +1,7 @@
 using MenuCraft.Api.Data;
 using MenuCraft.Api.Middleware;
 using MenuCraft.Api.Models;
+using MenuCraft.Api.Repositories;
 using MenuCraft.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
@@ -40,6 +41,9 @@ var host = new HostBuilder()
             .AddDefaultTokenProviders();
 
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IGroupService, GroupService>();
     })
     .Build();
 
