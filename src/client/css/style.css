@@ -413,6 +413,14 @@ body {
   margin: 0 0.5rem;
 }
 
+.meal-plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
 .meal-plan-board {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

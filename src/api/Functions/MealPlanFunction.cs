@@ -99,4 +99,86 @@ public class MealPlanFunction
             ApiResponse<MealPlanResponse>.Ok(result), cancellationToken);
         return response;
     }
+
+    [Function("AutoGenerateMealPlan")]
+    public async Task<HttpResponseData> AutoGenerateMealPlanAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "mealplans/auto-generate")] HttpRequestData req,
+        FunctionContext context,
+        CancellationToken cancellationToken)
+    {
+        var familyGroupId = context.RequireFamilyGroupId();
+
+        var body = await req.ReadFromJsonAsync<AutoGenerateRequest>(cancellationToken);
+        if (body is null || string.IsNullOrWhiteSpace(body.WeekStart) ||
+            !DateOnly.TryParse(body.WeekStart, out var weekStart))
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(
+                ApiResponse.Fail("weekStart は必須です (例: 2024-01-15)"), cancellationToken);
+            return badResponse;
+        }
+
+        try
+        {
+            var result = await _mealPlanService.AutoGenerateAsync(familyGroupId, weekStart, cancellationToken);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(
+                ApiResponse<WeeklyMealPlanResponse>.Ok(result), cancellationToken);
+            return response;
+        }
+        catch (ArgumentException ex)
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(ApiResponse.Fail(ex.Message), cancellationToken);
+            return badResponse;
+        }
+        catch (InvalidOperationException ex)
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(ApiResponse.Fail(ex.Message), cancellationToken);
+            return badResponse;
+        }
+    }
+
+    [Function("AutoFillMealPlan")]
+    public async Task<HttpResponseData> AutoFillMealPlanAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "mealplans/auto-fill")] HttpRequestData req,
+        FunctionContext context,
+        CancellationToken cancellationToken)
+    {
+        var familyGroupId = context.RequireFamilyGroupId();
+
+        var body = await req.ReadFromJsonAsync<AutoGenerateRequest>(cancellationToken);
+        if (body is null || string.IsNullOrWhiteSpace(body.WeekStart) ||
+            !DateOnly.TryParse(body.WeekStart, out var weekStart))
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(
+                ApiResponse.Fail("weekStart は必須です (例: 2024-01-15)"), cancellationToken);
+            return badResponse;
+        }
+
+        try
+        {
+            var result = await _mealPlanService.AutoFillAsync(familyGroupId, weekStart, cancellationToken);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(
+                ApiResponse<WeeklyMealPlanResponse>.Ok(result), cancellationToken);
+            return response;
+        }
+        catch (ArgumentException ex)
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(ApiResponse.Fail(ex.Message), cancellationToken);
+            return badResponse;
+        }
+        catch (InvalidOperationException ex)
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(ApiResponse.Fail(ex.Message), cancellationToken);
+            return badResponse;
+        }
+    }
 }

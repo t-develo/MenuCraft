@@ -38,4 +38,40 @@ const MealPlansApi = {
     const data = await res.json();
     return data.data;
   },
+
+  /**
+   * Auto-generate weekly meal plan (overwrites existing data).
+   * @param {string} weekStart - ISO date string (Monday)
+   * @returns {Promise<{weekStart: string, plans: Array}>}
+   */
+  async autoGenerate(weekStart) {
+    const res = await apiFetch('/api/mealplans/auto-generate', {
+      method: 'POST',
+      body: JSON.stringify({ weekStart }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '自動生成に失敗しました');
+    }
+    const data = await res.json();
+    return data.data;
+  },
+
+  /**
+   * Auto-fill empty slots in the weekly meal plan.
+   * @param {string} weekStart - ISO date string (Monday)
+   * @returns {Promise<{weekStart: string, plans: Array}>}
+   */
+  async autoFill(weekStart) {
+    const res = await apiFetch('/api/mealplans/auto-fill', {
+      method: 'POST',
+      body: JSON.stringify({ weekStart }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || '空き埋めに失敗しました');
+    }
+    const data = await res.json();
+    return data.data;
+  },
 };

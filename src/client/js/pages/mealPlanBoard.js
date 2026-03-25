@@ -104,6 +104,48 @@ async function renderMealPlanBoard(container) {
     nav.append(prevBtn, weekLabel, todayBtn, nextBtn);
     container.appendChild(nav);
 
+    // ── Auto-generate actions ──────────────────────────────────────────────
+    const actions = document.createElement('div');
+    actions.className = 'meal-plan-actions';
+
+    const autoGenBtn = document.createElement('button');
+    autoGenBtn.className = 'btn btn-primary';
+    autoGenBtn.textContent = '自動生成';
+    autoGenBtn.addEventListener('click', async () => {
+      if (!confirm('現在の献立をすべて上書きして自動生成します。よろしいですか？')) return;
+      autoGenBtn.disabled = true;
+      autoFillBtn.disabled = true;
+      try {
+        await MealPlansApi.autoGenerate(weekStart);
+        await renderWeek(monday);
+      } catch (error) {
+        console.error('Auto-generate failed:', error);
+        alert('自動生成に失敗しました: ' + error.message);
+        autoGenBtn.disabled = false;
+        autoFillBtn.disabled = false;
+      }
+    });
+
+    const autoFillBtn = document.createElement('button');
+    autoFillBtn.className = 'btn btn-secondary';
+    autoFillBtn.textContent = '空きを埋める';
+    autoFillBtn.addEventListener('click', async () => {
+      autoGenBtn.disabled = true;
+      autoFillBtn.disabled = true;
+      try {
+        await MealPlansApi.autoFill(weekStart);
+        await renderWeek(monday);
+      } catch (error) {
+        console.error('Auto-fill failed:', error);
+        alert('空き埋めに失敗しました: ' + error.message);
+        autoGenBtn.disabled = false;
+        autoFillBtn.disabled = false;
+      }
+    });
+
+    actions.append(autoGenBtn, autoFillBtn);
+    container.appendChild(actions);
+
     // ── Loading state ──────────────────────────────────────────────────────
     const loadingEl = document.createElement('p');
     loadingEl.className = 'loading-text';
