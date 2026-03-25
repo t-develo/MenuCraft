@@ -29,8 +29,6 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
     tier: 'Free'
   }
   properties: {
-    repositoryUrl: ''
-    branch: 'main'
     buildProperties: {
       appLocation: 'src/client'
       apiLocation: 'src/api'

@@ -87,6 +87,78 @@ BASE_URL=http://localhost:7071 npm run test:e2e
 
 ---
 
+## Infrastructure (Bicep)
+
+Azure リソース（Static Web Apps、SQL Server、SQL Database）を Bicep テンプレートで管理しています。
+
+### 前提条件
+
+- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) がインストール済みであること
+
+### コマンド
+
+```bash
+# Azure にログイン
+az login
+
+# サブスクリプションを確認・切り替え（複数ある場合）
+az account list --output table
+az account set --subscription "<サブスクリプションID>"
+
+# リソースグループを作成（初回のみ）
+az group create --name menucraft-rg --location japaneast
+
+# テンプレートの検証（デプロイ前の構文チェック）
+az deployment group validate \
+  --resource-group menucraft-rg \
+  --template-file infra/main.bicep \
+  --parameters sqlAdminLogin="<SQLユーザー名>" sqlAdminPassword="<SQLパスワード>"
+
+# What-if（変更内容のプレビュー）
+az deployment group what-if \
+  --resource-group menucraft-rg \
+  --template-file infra/main.bicep \
+  --parameters sqlAdminLogin="<SQLユーザー名>" sqlAdminPassword="<SQLパスワード>"
+
+# デプロイ実行
+az deployment group create \
+  --resource-group menucraft-rg \
+  --template-file infra/main.bicep \
+  --parameters sqlAdminLogin="<SQLユーザー名>" sqlAdminPassword="<SQLパスワード>"
+```
+
+#### パラメータのカスタマイズ（任意）
+
+デフォルト値を変更したい場合は `--parameters` に追記します。
+
+```bash
+az deployment group create \
+  --resource-group menucraft-rg \
+  --template-file infra/main.bicep \
+  --parameters \
+    sqlAdminLogin="<SQLユーザー名>" \
+    sqlAdminPassword="<SQLパスワード>" \
+    staticWebAppName="my-menucraft-swa" \
+    sqlServerName="my-menucraft-sql" \
+    sqlDatabaseName="my-menucraft-db" \
+    location="japaneast" \
+    swaLocation="eastasia"
+```
+
+#### デプロイ結果の確認
+
+```bash
+# デプロイ済みリソースの出力値（Static Web App URL、SQL Server FQDN）を確認
+az deployment group show \
+  --resource-group menucraft-rg \
+  --name main \
+  --query properties.outputs
+```
+
+> **Note**: `sqlAdminPassword` は Azure SQL の要件（8文字以上、大文字・小文字・数字・記号を含む）を満たす必要があります。
+
+---
+
 ## Repository Structure
 
 ```
