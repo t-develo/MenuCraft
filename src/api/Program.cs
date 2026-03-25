@@ -48,6 +48,9 @@ var host = new HostBuilder()
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddScoped<IRecipeService, RecipeService>();
 
+        services.AddScoped<IMealPlanRepository, MealPlanRepository>();
+        services.AddScoped<IMealPlanService, MealPlanService>();
+
         services.AddHttpClient("OgpClient", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
