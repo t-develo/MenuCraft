@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using FluentAssertions;
 using MenuCraft.Api.Dtos.Recipes;
 using MenuCraft.Api.Services;
 using Microsoft.Extensions.Logging.Abstractions;

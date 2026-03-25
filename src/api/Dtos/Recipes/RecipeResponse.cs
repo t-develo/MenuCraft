@@ -12,8 +12,3 @@ public record RecipeResponse(
     DateTime CreatedAt
 );
 
-public record IngredientResponse(
-    string Name,
-    string? Quantity,
-    string? Unit
-);

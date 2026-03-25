@@ -2,7 +2,9 @@ using System.Net;
 using MenuCraft.Api.Dtos;
 using MenuCraft.Api.Dtos.Groups;
 using MenuCraft.Api.Extensions;
+using MenuCraft.Api.Models;
 using MenuCraft.Api.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -12,11 +14,19 @@ namespace MenuCraft.Api.Functions;
 public class GroupFunction
 {
     private readonly IGroupService _groupService;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly UserManager<User> _userManager;
     private readonly ILogger<GroupFunction> _logger;
 
-    public GroupFunction(IGroupService groupService, ILogger<GroupFunction> logger)
+    public GroupFunction(
+        IGroupService groupService,
+        IJwtTokenService jwtTokenService,
+        UserManager<User> userManager,
+        ILogger<GroupFunction> logger)
     {
         _groupService = groupService;
+        _jwtTokenService = jwtTokenService;
+        _userManager = userManager;
         _logger = logger;
     }
 
@@ -41,9 +51,21 @@ public class GroupFunction
         {
             var group = await _groupService.CreateGroupAsync(userId, request, cancellationToken);
 
+            // Return a fresh token that encodes the new familyGroupId claim.
+            // GroupService.CreateGroupAsync already validates user exists; null here is unreachable.
+            var user = await _userManager.FindByIdAsync(userId.ToString())
+                ?? throw new InvalidOperationException("User not found after group creation.");
+            var newToken = _jwtTokenService.GenerateAccessToken(user);
+
             var response = req.CreateResponse(HttpStatusCode.Created);
             await response.WriteAsJsonAsync(
-                ApiResponse<GroupResponse>.Ok(group), cancellationToken);
+                ApiResponse<GroupWithTokenResponse>.Ok(new GroupWithTokenResponse(
+                    group.Id,
+                    group.Name,
+                    group.InviteCode,
+                    newToken,
+                    DateTimeOffset.UtcNow.AddHours(1))),
+                cancellationToken);
             return response;
         }
         catch (InvalidOperationException ex)
@@ -76,9 +98,21 @@ public class GroupFunction
         {
             var group = await _groupService.JoinGroupAsync(userId, request, cancellationToken);
 
+            // Return a fresh token that encodes the new familyGroupId claim.
+            // GroupService.JoinGroupAsync already validates user exists; null here is unreachable.
+            var user = await _userManager.FindByIdAsync(userId.ToString())
+                ?? throw new InvalidOperationException("User not found after joining group.");
+            var newToken = _jwtTokenService.GenerateAccessToken(user);
+
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(
-                ApiResponse<GroupResponse>.Ok(group), cancellationToken);
+                ApiResponse<GroupWithTokenResponse>.Ok(new GroupWithTokenResponse(
+                    group.Id,
+                    group.Name,
+                    group.InviteCode,
+                    newToken,
+                    DateTimeOffset.UtcNow.AddHours(1))),
+                cancellationToken);
             return response;
         }
         catch (KeyNotFoundException ex)

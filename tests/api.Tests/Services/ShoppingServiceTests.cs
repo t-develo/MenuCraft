@@ -100,8 +100,8 @@ public class ShoppingServiceTests
         var weekStart = new DateOnly(2024, 1, 1);
         var plans = CreatePlansWithIngredients(new[]
         {
-            ("レシピA", new[] { ("塩", "少々", null) }),
-            ("レシピB", new[] { ("塩", "少々", null) }),
+            ("レシピA", new[] { ("塩", "少々", (string?)null) }),
+            ("レシピB", new[] { ("塩", "少々", (string?)null) }),
         });
 
         _mockRepo.Setup(r => r.GetWeeklyPlansWithIngredientsAsync(42, weekStart, It.IsAny<CancellationToken>()))

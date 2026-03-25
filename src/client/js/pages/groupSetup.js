@@ -128,17 +128,13 @@ async function handleCreateGroup(e) {
   }
 
   try {
-    const response = await apiFetch('/api/groups', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      showGroupError(data.error || 'グループの作成に失敗しました');
+    const data = await GroupsApi.create(name);
+    if (!data || !data.success) {
+      showGroupError((data && data.error) || 'グループの作成に失敗しました');
       return;
     }
 
+    // Re-login to obtain a fresh token that includes familyGroupId
     window.location.href = '/';
   } catch (error) {
     console.error('Failed to create group:', error);
@@ -158,18 +154,14 @@ async function handleJoinGroup(e) {
   }
 
   try {
-    const response = await apiFetch('/api/groups/join', {
-      method: 'POST',
-      body: JSON.stringify({ inviteCode }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      showGroupError(data.error || '参加に失敗しました');
+    const data = await GroupsApi.join(inviteCode);
+    if (!data || !data.success) {
+      showGroupError((data && data.error) || '参加に失敗しました');
       return;
     }
 
-    window.location.href = '/';
+    // Re-login to obtain a fresh token that includes familyGroupId
+    window.location.href = '/login.html?hint=group_joined';
   } catch (error) {
     console.error('Failed to join group:', error);
     showGroupError('参加に失敗しました');
