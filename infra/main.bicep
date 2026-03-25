@@ -1,5 +1,8 @@
-@description('The location for all resources.')
-param location string = resourceGroup().location
+@description('The location for backend resources (SQL Server, etc.).')
+param location string = 'japaneast'
+
+@description('The location for Static Web App. Must be an SWA-supported region (japaneast is not supported).')
+param swaLocation string = 'eastasia'
 
 @description('The name of the Static Web App.')
 param staticWebAppName string = 'menucraft-swa'
@@ -20,7 +23,7 @@ param sqlAdminPassword string
 // Static Web App (Free tier)
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
-  location: location
+  location: swaLocation
   sku: {
     name: 'Free'
     tier: 'Free'
