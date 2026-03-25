@@ -24,6 +24,7 @@
   const navItems = [
     { label: '献立ボード', page: 'mealplan' },
     { label: 'レシピ', page: 'recipes' },
+    { label: '買い物リスト', page: 'shopping' },
   ];
 
   let activePage = 'mealplan';
@@ -69,6 +70,8 @@
       renderMealPlanBoard(main);
     } else if (page === 'recipes') {
       renderRecipesPage(main);
+    } else if (page === 'shopping') {
+      renderShoppingListPage(main);
     }
   }
 
