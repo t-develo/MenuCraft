@@ -47,6 +47,19 @@ var host = new HostBuilder()
 
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddScoped<IRecipeService, RecipeService>();
+
+        services.AddHttpClient("OgpClient", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.Add("User-Agent", "MenuCraft/1.0 (OGP Fetcher)");
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            MaxAutomaticRedirections = 5,
+            AllowAutoRedirect = true
+        });
+
+        services.AddSingleton<IOgpService, OgpService>();
+        services.AddSingleton<IIngredientParserService, IngredientParserService>();
     })
     .Build();
 

@@ -12,11 +12,19 @@ namespace MenuCraft.Api.Functions;
 public class RecipeFunction
 {
     private readonly IRecipeService _recipeService;
+    private readonly IOgpService _ogpService;
+    private readonly IIngredientParserService _ingredientParserService;
     private readonly ILogger<RecipeFunction> _logger;
 
-    public RecipeFunction(IRecipeService recipeService, ILogger<RecipeFunction> logger)
+    public RecipeFunction(
+        IRecipeService recipeService,
+        IOgpService ogpService,
+        IIngredientParserService ingredientParserService,
+        ILogger<RecipeFunction> logger)
     {
         _recipeService = recipeService;
+        _ogpService = ogpService;
+        _ingredientParserService = ingredientParserService;
         _logger = logger;
     }
 
@@ -114,6 +122,65 @@ public class RecipeFunction
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(
             ApiResponse<RecipeResponse>.Ok(recipe), cancellationToken);
+        return response;
+    }
+
+    [Function("FetchOgp")]
+    public async Task<HttpResponseData> FetchOgpAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "recipes/fetch-ogp")] HttpRequestData req,
+        FunctionContext context,
+        CancellationToken cancellationToken)
+    {
+        // Auth check — must belong to a family group
+        context.RequireFamilyGroupId();
+
+        var request = await req.ReadFromJsonAsync<FetchOgpRequest>(cancellationToken);
+        if (request is null || string.IsNullOrWhiteSpace(request.Url))
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(
+                ApiResponse.Fail("URLは必須です"), cancellationToken);
+            return badResponse;
+        }
+
+        var ogp = await _ogpService.FetchOgpAsync(request.Url, cancellationToken);
+        if (ogp is null)
+        {
+            var failResponse = req.CreateResponse(HttpStatusCode.UnprocessableEntity);
+            await failResponse.WriteAsJsonAsync(
+                ApiResponse.Fail("OGP情報の取得に失敗しました"), cancellationToken);
+            return failResponse;
+        }
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        await response.WriteAsJsonAsync(
+            ApiResponse<OgpResponse>.Ok(ogp), cancellationToken);
+        return response;
+    }
+
+    [Function("ParseIngredients")]
+    public async Task<HttpResponseData> ParseIngredientsAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "recipes/parse-ingredients")] HttpRequestData req,
+        FunctionContext context,
+        CancellationToken cancellationToken)
+    {
+        // Auth check — must belong to a family group
+        context.RequireFamilyGroupId();
+
+        var request = await req.ReadFromJsonAsync<ParseIngredientsRequest>(cancellationToken);
+        if (request is null || string.IsNullOrWhiteSpace(request.Text))
+        {
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(
+                ApiResponse.Fail("テキストは必須です"), cancellationToken);
+            return badResponse;
+        }
+
+        var result = _ingredientParserService.ParseIngredients(request.Text);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        await response.WriteAsJsonAsync(
+            ApiResponse<ParseIngredientsResponse>.Ok(result), cancellationToken);
         return response;
     }
 

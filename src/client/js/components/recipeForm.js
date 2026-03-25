@@ -25,8 +25,52 @@ function createRecipeForm(recipe, { onSubmit, onCancel }) {
   // Title
   form.appendChild(createFormField('title', 'タイトル', 'text', recipe?.title || '', true));
 
-  // URL
-  form.appendChild(createFormField('url', 'URL', 'url', recipe?.url || '', false));
+  // URL + 自動取得ボタン
+  const urlGroup = createFormField('url', 'URL', 'url', recipe?.url || '', false);
+  const fetchOgpBtn = document.createElement('button');
+  fetchOgpBtn.type = 'button';
+  fetchOgpBtn.className = 'btn btn-secondary btn-sm';
+  fetchOgpBtn.textContent = '自動取得';
+  fetchOgpBtn.addEventListener('click', async () => {
+    const urlInput = document.getElementById('url');
+    const url = urlInput ? urlInput.value.trim() : '';
+    if (!url) {
+      const errorEl = document.getElementById('recipe-form-error');
+      if (errorEl) {
+        errorEl.textContent = 'URLを入力してください';
+        errorEl.hidden = false;
+      }
+      return;
+    }
+    fetchOgpBtn.disabled = true;
+    fetchOgpBtn.textContent = '取得中...';
+    try {
+      const ogp = await RecipesApi.fetchOgp(url);
+      if (ogp.title) {
+        const titleInput = document.getElementById('title');
+        if (titleInput && !titleInput.value) titleInput.value = ogp.title;
+      }
+      if (ogp.imageUrl) {
+        const imageInput = document.getElementById('imageUrl');
+        if (imageInput && !imageInput.value) imageInput.value = ogp.imageUrl;
+      }
+      if (ogp.description) {
+        const descInput = document.getElementById('description');
+        if (descInput && !descInput.value) descInput.value = ogp.description;
+      }
+    } catch (err) {
+      const errorEl = document.getElementById('recipe-form-error');
+      if (errorEl) {
+        errorEl.textContent = 'OGP情報の取得に失敗しました';
+        errorEl.hidden = false;
+      }
+    } finally {
+      fetchOgpBtn.disabled = false;
+      fetchOgpBtn.textContent = '自動取得';
+    }
+  });
+  urlGroup.appendChild(fetchOgpBtn);
+  form.appendChild(urlGroup);
 
   // Image URL
   form.appendChild(createFormField('imageUrl', '画像URL', 'url', recipe?.imageUrl || '', false));
@@ -51,7 +95,7 @@ function createRecipeForm(recipe, { onSubmit, onCancel }) {
   form.appendChild(createFormField('tags', 'タグ（カンマ区切り）', 'text',
     recipe?.tags?.join(', ') || '', false));
 
-  // Ingredients (simple text area for MVP)
+  // Ingredients + 自動解析ボタン
   const ingredGroup = document.createElement('div');
   ingredGroup.className = 'form-group';
   const ingredLabel = document.createElement('label');
@@ -64,8 +108,41 @@ function createRecipeForm(recipe, { onSubmit, onCancel }) {
   ingredTextarea.value = recipe?.ingredients
     ?.map(i => `${i.name} ${i.quantity || ''} ${i.unit || ''}`.trim())
     .join('\n') || '';
+  const parseIngredientsBtn = document.createElement('button');
+  parseIngredientsBtn.type = 'button';
+  parseIngredientsBtn.className = 'btn btn-secondary btn-sm';
+  parseIngredientsBtn.textContent = '自動解析';
+  parseIngredientsBtn.addEventListener('click', async () => {
+    const text = ingredTextarea.value.trim();
+    if (!text) {
+      const errorEl = document.getElementById('recipe-form-error');
+      if (errorEl) {
+        errorEl.textContent = '材料テキストを入力してください';
+        errorEl.hidden = false;
+      }
+      return;
+    }
+    parseIngredientsBtn.disabled = true;
+    parseIngredientsBtn.textContent = '解析中...';
+    try {
+      const ingredients = await RecipesApi.parseIngredients(text);
+      ingredTextarea.value = ingredients
+        .map(i => `${i.name} ${i.quantity || ''} ${i.unit || ''}`.trim())
+        .join('\n');
+    } catch (err) {
+      const errorEl = document.getElementById('recipe-form-error');
+      if (errorEl) {
+        errorEl.textContent = '材料の解析に失敗しました';
+        errorEl.hidden = false;
+      }
+    } finally {
+      parseIngredientsBtn.disabled = false;
+      parseIngredientsBtn.textContent = '自動解析';
+    }
+  });
   ingredGroup.appendChild(ingredLabel);
   ingredGroup.appendChild(ingredTextarea);
+  ingredGroup.appendChild(parseIngredientsBtn);
   form.appendChild(ingredGroup);
 
   // Error
