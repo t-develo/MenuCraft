@@ -32,18 +32,9 @@ jobs:
         run: dotnet test tests/api.Tests/ --no-build --configuration Release --verbosity normal
 
       - name: Publish API
-        run: dotnet publish src/api/ --configuration Release --output published/api
-
-      - name: Create Functions runtime settings
         run: |
-          cat > published/api/local.settings.json << 'EOF'
-          {
-            "IsEncrypted": false,
-            "Values": {
-              "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
-            }
-          }
-          EOF
+          dotnet publish src/api/ --configuration Release --output published/api
+          cp src/api/MenuCraft.Api.csproj published/api/
 
       - name: Deploy to Azure Static Web Apps
         id: deploy
