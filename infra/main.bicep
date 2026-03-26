@@ -81,5 +81,13 @@ resource sqlFirewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview
   }
 }
 
+resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-12-01' = {
+  parent: staticWebApp
+  name: 'appsettings'
+  properties: {
+    ConnectionStrings__Default: 'Server=${sqlServer.properties.fullyQualifiedDomainName};Database=${sqlDatabaseName};User Id=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;'
+  }
+}
+
 output staticWebAppDefaultHostname string = staticWebApp.properties.defaultHostname
 output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
