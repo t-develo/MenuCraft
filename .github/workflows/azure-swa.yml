@@ -34,6 +34,17 @@ jobs:
       - name: Publish API
         run: dotnet publish src/api/ --configuration Release --output published/api
 
+      - name: Create Functions runtime settings
+        run: |
+          cat > published/api/local.settings.json << 'EOF'
+          {
+            "IsEncrypted": false,
+            "Values": {
+              "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+            }
+          }
+          EOF
+
       - name: Deploy to Azure Static Web Apps
         id: deploy
         uses: Azure/static-web-apps-deploy@v1
