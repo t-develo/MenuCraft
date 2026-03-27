@@ -31,11 +31,6 @@ jobs:
       - name: Run tests
         run: dotnet test tests/api.Tests/ --no-build --configuration Release --verbosity normal
 
-      - name: Publish API
-        run: |
-          dotnet publish src/api/ --configuration Release --output published/api
-          cp src/api/MenuCraft.Api.csproj published/api/
-
       - name: Deploy to Azure Static Web Apps
         id: deploy
         uses: Azure/static-web-apps-deploy@v1
@@ -44,10 +39,9 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "src/client"
-          api_location: "published/api"
+          api_location: "src/api"
           output_location: ""
           skip_app_build: true
-          skip_api_build: true
 
   close_pull_request:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
