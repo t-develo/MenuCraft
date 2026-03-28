@@ -41,7 +41,7 @@ jobs:
           app_location: "src/client"
           api_location: "src/api"
           output_location: ""
-          skip_app_build: true
+          # skip_app_build: true
 
   close_pull_request:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
