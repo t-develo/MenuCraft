@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWebApplication(builder =>
+    .ConfigureFunctionsWorkerDefaults(builder =>
     {
         builder.UseMiddleware<JwtAuthenticationMiddleware>();
     })
