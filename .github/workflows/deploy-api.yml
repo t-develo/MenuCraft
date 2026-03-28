@@ -1,0 +1,69 @@
+name: Deploy API (Azure Functions)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/api/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  API_PROJECT_PATH: 'src/api'
+  TEST_PROJECT_PATH: 'tests/api.Tests'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Build and Test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.TEST_PROJECT_PATH }}/
+
+      - name: Build
+        run: dotnet build ${{ env.TEST_PROJECT_PATH }}/ --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test ${{ env.TEST_PROJECT_PATH }}/ --no-build --configuration Release --verbosity normal
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Azure Functions
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: dotnet publish ${{ env.API_PROJECT_PATH }}/ --configuration Release --output ./publish
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.FUNCTION_APP_NAME }}
+          package: ./publish

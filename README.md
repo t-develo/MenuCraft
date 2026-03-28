@@ -13,11 +13,11 @@ Web / YouTube / Instagram で見つけたレシピを一箇所に集約し、1�
 | Layer | Technology |
 |---|---|
 | Frontend | Vanilla JS SPA（ビルドステップなし） |
-| Hosting | Azure Static Web Apps (Free) |
-| Backend | Azure Functions (.NET 10 Isolated Worker) |
+| Hosting (Frontend) | Azure Storage Account 静的 Web サイト |
+| Backend (API) | Azure Functions (.NET 8 Isolated Worker, Consumption Plan) |
 | Database | Azure SQL Database (Free tier) |
 | Auth | ASP.NET Identity + JWT Bearer Token |
-| CI/CD | GitHub Actions |
+| CI/CD | GitHub Actions（フロントエンド・API 独立デプロイ） |
 
 ---
 
@@ -64,7 +64,8 @@ cd src/api && func start
 
 - **VSCode Live Server** 拡張: `src/client/index.html` を右クリック → 「Open with Live Server」
 - **Python**: `python -m http.server 5500 --directory src/client`
-- **Azure SWA CLI**: `swa start src/client --api-location src/api`（フルスタックでの動作確認に推奨）
+
+> **Note**: ローカル開発時は `src/client/js/config.js` の `API_BASE_URL` を空文字（デフォルト）のままにし、Azure Functions Core Tools (`func start`) を別ターミナルで起動してください。本番環境では Azure Functions の URL を設定します。
 
 ### テスト実行
 
@@ -89,7 +90,7 @@ BASE_URL=http://localhost:7071 npm run test:e2e
 
 ## Infrastructure (Bicep)
 
-Azure リソース（Static Web Apps、SQL Server、SQL Database）を Bicep テンプレートで管理しています。
+Azure リソース（Storage Account、Azure Functions、SQL Server、SQL Database）を Bicep テンプレートで管理しています。
 
 ### 前提条件
 
@@ -164,26 +165,28 @@ az deployment group show \
 ```
 menucraft/
 ├── src/
-│   ├── client/              # Vanilla JS SPA
+│   ├── client/              # Vanilla JS SPA → Azure Storage Account 静的 Web サイト
 │   │   ├── index.html
+│   │   ├── 404.html         # SPA フォールバック (index.html のコピー)
 │   │   ├── css/style.css
 │   │   └── js/
+│   │       ├── config.js    # 環境設定 (API_BASE_URL)
 │   │       ├── api/         # APIクライアント (apiFetch, auth, groups, recipes, mealplans, shopping)
 │   │       ├── components/  # UIコンポーネント (recipeCard, recipeForm)
 │   │       └── pages/       # ページ (groupSetup, recipes, mealPlanBoard, shoppingList)
-│   └── api/                 # Azure Functions (.NET 10)
+│   └── api/                 # Azure Functions (.NET 8 Isolated Worker, Consumption Plan)
 │       ├── Functions/       # HTTPトリガー関数
 │       ├── Services/        # ビジネスロジック
 │       ├── Repositories/    # データアクセス層
+│       ├── Middleware/      # JWT認証 + セキュリティヘッダー
 │       ├── Models/          # エンティティモデル
 │       └── Dtos/            # リクエスト/レスポンス DTO
 ├── tests/
 │   ├── api.Tests/           # xUnit バックエンドテスト
 │   └── e2e/                 # Playwright E2Eテスト
-├── infra/                   # Bicep テンプレート (Azure リソース定義)
+├── infra/                   # Bicep テンプレート (Storage Account, Functions, SQL)
 ├── playwright.config.js
-├── staticwebapp.config.json
-└── .github/workflows/       # CI/CD
+└── .github/workflows/       # CI/CD (deploy-frontend.yml, deploy-api.yml)
 ```
 
 ---
@@ -217,7 +220,7 @@ menucraft/
 
 - 全ページ認証必須（ログイン画面以外）
 - `noindex` + `robots.txt` で検索エンジン非露出
-- HTTPS 必須（Azure Static Web Apps が自動提供）
+- HTTPS 必須（Azure Functions は既定で HTTPS）
 - パスワード: PBKDF2 (ASP.NET Identity)
 - API: JWT Bearer Token 認証（1時間有効）
 - XSS対策: `textContent` 使用、`innerHTML` 不使用
