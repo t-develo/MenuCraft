@@ -37,8 +37,7 @@ var host = new HostBuilder()
                 options.Password.RequireNonAlphanumeric = false;
                 options.User.RequireUniqueEmail = true;
             })
-            .AddEntityFrameworkStores<AppDbContext>()
-            .AddDefaultTokenProviders();
+            .AddEntityFrameworkStores<AppDbContext>();
 
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
