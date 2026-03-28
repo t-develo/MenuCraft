@@ -1,6 +1,9 @@
 @description('The location for all resources.')
 param location string = 'japaneast'
 
+@description('The location for Azure Functions. Change if Dynamic VM quota is unavailable in the primary location.')
+param functionsLocation string = location
+
 @description('The name of the Storage Account for static website hosting.')
 param storageAccountName string = 'menucraftweb'
 
@@ -65,7 +68,7 @@ resource webContainer 'Microsoft.Storage/storageAccounts/blobServices/containers
 // ============================================================
 resource functionStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: functionStorageName
-  location: location
+  location: functionsLocation
   kind: 'StorageV2'
   sku: {
     name: 'Standard_LRS'
@@ -78,7 +81,7 @@ resource functionStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: appServicePlanName
-  location: location
+  location: functionsLocation
   kind: 'functionapp'
   sku: {
     name: 'Y1'
@@ -88,7 +91,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 
 resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: functionAppName
-  location: location
+  location: functionsLocation
   kind: 'functionapp'
   properties: {
     serverFarmId: appServicePlan.id
