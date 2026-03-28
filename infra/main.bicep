@@ -1,11 +1,20 @@
-@description('The location for backend resources (SQL Server, etc.).')
+@description('The location for all resources.')
 param location string = 'japaneast'
 
-@description('The location for Static Web App. Must be an SWA-supported region (japaneast is not supported).')
-param swaLocation string = 'eastasia'
+@description('The location for Azure Functions. Change if Dynamic VM quota is unavailable in the primary location.')
+param functionsLocation string = location
 
-@description('The name of the Static Web App.')
-param staticWebAppName string = 'menucraft-swa'
+@description('The name of the Storage Account for static website hosting.')
+param storageAccountName string = 'menucraftweb'
+
+@description('The name of the Azure Functions App.')
+param functionAppName string = 'menucraft-func'
+
+@description('The name of the App Service Plan for Functions (Consumption).')
+param appServicePlanName string = 'menucraft-func-plan'
+
+@description('The name of the Storage Account for Azure Functions runtime.')
+param functionStorageName string = 'menucraftfuncstor'
 
 @description('The name of the SQL Server.')
 param sqlServerName string = 'menucraft-sql'
@@ -20,24 +29,116 @@ param sqlAdminLogin string
 @description('The SQL administrator password.')
 param sqlAdminPassword string
 
-// Static Web App (Free tier)
-resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
-  name: staticWebAppName
-  location: swaLocation
+@description('Allowed origins for CORS (frontend URL). Set after initial deployment.')
+param allowedOrigins string = ''
+
+// ============================================================
+// Storage Account — Static Website Hosting (Frontend)
+// ============================================================
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
+  location: location
+  kind: 'StorageV2'
   sku: {
-    name: 'Free'
-    tier: 'Free'
+    name: 'Standard_LRS'
   }
   properties: {
-    buildProperties: {
-      appLocation: 'src/client'
-      apiLocation: 'src/api'
-      skipGithubActionWorkflowGeneration: true
+    supportsHttpsTrafficOnly: true
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: true
+  }
+}
+
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: storageAccount
+  name: 'default'
+  properties: {}
+}
+
+resource webContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: '$web'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+// ============================================================
+// Azure Functions — Consumption Plan + Function App (API)
+// ============================================================
+resource functionStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: functionStorageName
+  location: functionsLocation
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    supportsHttpsTrafficOnly: true
+    minimumTlsVersion: 'TLS1_2'
+  }
+}
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: appServicePlanName
+  location: functionsLocation
+  kind: 'functionapp'
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+  }
+}
+
+resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
+  name: functionAppName
+  location: functionsLocation
+  kind: 'functionapp'
+  properties: {
+    serverFarmId: appServicePlan.id
+    httpsOnly: true
+    siteConfig: {
+      netFrameworkVersion: 'v8.0'
+      cors: {
+        allowedOrigins: empty(allowedOrigins) ? [] : [allowedOrigins]
+        supportCredentials: false
+      }
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${functionStorage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${functionStorage.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${functionStorage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${functionStorage.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower(functionAppName)
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'dotnet-isolated'
+        }
+        {
+          name: 'ConnectionStrings__Default'
+          value: 'Server=${sqlServer.properties.fullyQualifiedDomainName};Database=${sqlDatabaseName};User Id=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;'
+        }
+        {
+          name: 'AllowedOrigins'
+          value: allowedOrigins
+        }
+      ]
     }
   }
 }
 
-// SQL Server
+// ============================================================
+// SQL Server + Database
+// ============================================================
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: sqlServerName
   location: location
@@ -50,7 +151,6 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   }
 }
 
-// SQL Database (Free tier)
 resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   parent: sqlServer
   name: sqlDatabaseName
@@ -81,13 +181,9 @@ resource sqlFirewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview
   }
 }
 
-resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-12-01' = {
-  parent: staticWebApp
-  name: 'appsettings'
-  properties: {
-    ConnectionStrings__Default: 'Server=${sqlServer.properties.fullyQualifiedDomainName};Database=${sqlDatabaseName};User Id=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;'
-  }
-}
-
-output staticWebAppDefaultHostname string = staticWebApp.properties.defaultHostname
+// ============================================================
+// Outputs
+// ============================================================
+output storageStaticWebsiteUrl string = storageAccount.properties.primaryEndpoints.web
+output functionAppDefaultHostname string = functionApp.properties.defaultHostName
 output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName

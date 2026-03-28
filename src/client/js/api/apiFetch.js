@@ -3,17 +3,20 @@
 /**
  * Central HTTP client for MenuCraft API.
  * Attaches Bearer token and handles 401 responses.
+ * Supports cross-origin API calls via AppConfig.API_BASE_URL.
  *
- * @param {string} url - API endpoint path (e.g., '/api/recipes')
+ * @param {string} path - API endpoint path (e.g., '/api/recipes')
  * @param {RequestInit} [options={}] - Fetch options
  * @returns {Promise<Response>}
  */
-async function apiFetch(url, options = {}) {
+async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('authToken');
+  const baseUrl = typeof AppConfig !== 'undefined' ? AppConfig.API_BASE_URL : '';
+  const url = path.startsWith('/api/') ? `${baseUrl}${path}` : path;
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(token && url.startsWith('/api/') ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token && path.startsWith('/api/') ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
 

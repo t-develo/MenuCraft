@@ -57,11 +57,11 @@ Prioritize correctness over speed at all times:
 | Layer | Technology | Notes |
 |---|---|---|
 | Frontend | Vanilla JS SPA | fetch API, DOM操作中心。ライブラリ最小限 |
-| Hosting (static) | Azure Static Web Apps (Free) | CDN, TLS証明書付き |
-| Backend (API) | Azure Functions (.NET 10 Isolated Worker) | HTTP Trigger。SWA マネージド Functions として統合 |
+| Hosting (static) | Azure Storage Account 静的 Web サイト | HTTPS、低コスト |
+| Backend (API) | Azure Functions (.NET 8 Isolated Worker) | HTTP Trigger。Consumption Plan で独立デプロイ |
 | Database | Azure SQL Database (Free tier) | SQL Server |
 | Auth | ASP.NET Identity | JWT Bearer Token。メール + パスワード (MVP) |
-| CI/CD | GitHub Actions | SWA とネイティブ統合。PR ごとにステージング環境自動生成 |
+| CI/CD | GitHub Actions | フロントエンド・API を独立してデプロイ |
 
 ---
 
@@ -70,18 +70,21 @@ Prioritize correctness over speed at all times:
 ```
 menucraft/
 ├── src/
-│   ├── client/          # Vanilla JS SPA
+│   ├── client/          # Vanilla JS SPA → Azure Storage Account 静的 Web サイト
 │   │   ├── index.html
+│   │   ├── 404.html     # SPA フォールバック用 (index.html のコピー)
 │   │   ├── css/
 │   │   └── js/
-│   └── api/             # Azure Functions (.NET 10)
+│   │       ├── config.js  # API_BASE_URL 等の環境設定
+│   │       └── api/
+│   └── api/             # Azure Functions (.NET 8 Isolated Worker)
 │       ├── Functions/
 │       ├── Services/
+│       ├── Middleware/   # JWT認証 + セキュリティヘッダー
 │       ├── Models/
 │       └── host.json
-├── infra/               # Bicep テンプレート (Azure リソース定義)
-├── staticwebapp.config.json
-└── .github/workflows/   # CI/CD
+├── infra/               # Bicep テンプレート (Storage Account, Functions App, SQL)
+└── .github/workflows/   # CI/CD (deploy-frontend.yml, deploy-api.yml)
 ```
 
 ---
@@ -163,8 +166,11 @@ Key constraints:
 
 ## Architecture Notes
 
-- `/api/*` へのリクエストは SWA が自動ルーティング → CORS 設定不要
-- マネージド Functions は **HTTP トリガーのみ**対応。タイマートリガーが必要になった場合は別途 Consumption Plan Functions App を Bring Your Own Functions で連携
+- フロントエンドは Azure Storage Account 静的 Web サイトでホスティング
+- API は独立した Azure Functions (Consumption Plan) にデプロイ。CORS 設定でフロントエンドのオリジンを許可
+- セキュリティヘッダー（X-Robots-Tag, X-Content-Type-Options, X-Frame-Options, Referrer-Policy）は API の `SecurityHeadersMiddleware` で付与
+- フロントエンドの `config.js` で `API_BASE_URL` を設定し、クロスオリジン API 呼び出しに対応
+- SPA ルーティングは Storage Account の 404 ドキュメントを `404.html`（= `index.html` のコピー）に設定して対応
 - コールドスタートあり（個人利用のため許容）
 - Last Write Wins で競合解決（同時編集は少人数のため頻度低）
 - 献立履歴は過去1ヶ月分保持、それ以降は論理削除 + 定期クリーンアップ
@@ -183,7 +189,7 @@ Key constraints:
 
 - Default branch: `main`
 - Feature branches: `feature/<description>`
-- PR ごとにステージング環境が自動生成される
+- フロントエンドと API は独立してデプロイ
 - 常に明確なコミットメッセージを書く
 
 ---
@@ -192,6 +198,6 @@ Key constraints:
 
 - 全ページ認証必須（ログイン画面以外）
 - `noindex` + `robots.txt` で検索エンジンに露出しない
-- HTTPS 必須（SWA が無料 TLS 証明書を自動提供）
+- HTTPS 必須（Azure Functions は既定で HTTPS、Storage Account はカスタムドメイン利用時に別途対応）
 - パスワード: PBKDF2 (ASP.NET Identity デフォルト)
 - API: JWT Bearer Token 認証
