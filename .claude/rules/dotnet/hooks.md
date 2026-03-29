@@ -34,6 +34,26 @@ Configure in `~/.claude/settings.json`:
 }
 ```
 
+## Mandatory Build Verification (CRITICAL)
+
+**ALWAYS run `dotnet build` after any change to `.cs` or `.csproj` files, before committing.**
+
+If `dotnet` is not found in the environment, install it first:
+
+```bash
+# Check if dotnet is available
+dotnet --version 2>/dev/null || apt-get install -y dotnet-sdk-8.0
+
+# Then verify the build
+dotnet build src/api/
+```
+
+**Rules:**
+- Never skip this step — a passing build is the minimum bar before committing
+- If `dotnet` is missing, install it via `apt-get install -y dotnet-sdk-8.0` before proceeding
+- Fix all build errors before committing; do not commit broken code
+- This applies to any change: `.cs` files, `.csproj` files, `host.json`, etc.
+
 ## Warnings
 
 - Warn about `Console.WriteLine()` statements in edited `.cs` files (use `ILogger<T>` instead)
