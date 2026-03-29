@@ -3,12 +3,13 @@
 /**
  * Application configuration.
  *
- * API_BASE_URL is empty for local development (same-origin proxy)
- * and set to the Azure Functions URL in production.
+ * API_BASE_URL is injected at deploy time by the CI/CD pipeline.
+ * The placeholder __API_BASE_URL__ is replaced with the actual
+ * Azure Functions URL via `sed` in deploy-frontend.yml.
  *
- * Override by setting window.__ENV__.API_BASE_URL before this script loads,
- * or by editing this file for production deployments.
+ * For local development, set API_BASE_URL to the local Functions URL:
+ *   http://localhost:7071
  */
 const AppConfig = Object.freeze({
-  API_BASE_URL: (window.__ENV__ && window.__ENV__.API_BASE_URL) || '',
+  API_BASE_URL: '__API_BASE_URL__',
 });
