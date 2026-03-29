@@ -29,8 +29,8 @@ param sqlAdminLogin string
 @description('The SQL administrator password.')
 param sqlAdminPassword string
 
-@description('Allowed origins for CORS (frontend URL). Set after initial deployment.')
-param allowedOrigins string = ''
+@description('Allowed origins for CORS (frontend URL).')
+param allowedOrigins string = 'https://menucraftweb.z11.web.core.windows.net'
 
 // ============================================================
 // Storage Account — Static Website Hosting (Frontend)

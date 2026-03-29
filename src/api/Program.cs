@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(builder =>
     {
+        builder.UseMiddleware<CorsMiddleware>();
         builder.UseMiddleware<SecurityHeadersMiddleware>();
         builder.UseMiddleware<JwtAuthenticationMiddleware>();
     })

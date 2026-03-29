@@ -48,6 +48,13 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
+        // CORS preflight requests must not require authentication
+        if (requestData.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+
         if (!requestData.Headers.TryGetValues("Authorization", out var authHeaders))
         {
             var response = requestData.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
