@@ -35,6 +35,10 @@ jobs:
             --index-document index.html \
             --404-document 404.html
 
+      - name: Inject API_BASE_URL into config.js
+        run: |
+          sed -i "s|__API_BASE_URL__|${{ vars.API_BASE_URL }}|g" src/client/js/config.js
+
       - name: Upload to $web container
         run: |
           az storage blob upload-batch \
