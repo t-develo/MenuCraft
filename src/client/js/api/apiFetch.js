@@ -25,7 +25,9 @@ async function apiFetch(path, options = {}) {
     headers,
   });
 
-  if (response.status === 401) {
+  // Skip the 401 redirect for auth endpoints — they handle errors themselves.
+  const isAuthEndpoint = path === '/api/auth/login' || path === '/api/auth/register';
+  if (response.status === 401 && !isAuthEndpoint) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     window.location.href = '/login.html';

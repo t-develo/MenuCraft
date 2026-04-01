@@ -26,6 +26,11 @@ function renderGroupSetup(container) {
   subtitle.textContent = 'グループ設定';
   card.appendChild(subtitle);
 
+  const description = document.createElement('p');
+  description.className = 'auth-description';
+  description.textContent = 'ログインしました。利用を開始するにはグループを作成するか、招待コードで既存のグループに参加してください。';
+  card.appendChild(description);
+
   // Create group section
   const createSection = document.createElement('div');
   createSection.className = 'form-section';
@@ -107,6 +112,19 @@ function renderGroupSetup(container) {
   errorDiv.className = 'error-message';
   errorDiv.hidden = true;
   card.appendChild(errorDiv);
+
+  const logoutLink = document.createElement('p');
+  logoutLink.className = 'auth-link';
+  const logoutBtn = document.createElement('button');
+  logoutBtn.className = 'btn-link';
+  logoutBtn.textContent = 'ログアウト';
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/login.html';
+  });
+  logoutLink.appendChild(logoutBtn);
+  card.appendChild(logoutLink);
 
   wrapper.appendChild(card);
   container.appendChild(wrapper);
