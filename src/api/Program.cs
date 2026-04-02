@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MenuCraft.Api.Data;
 using MenuCraft.Api.Middleware;
 using MenuCraft.Api.Models;
@@ -18,6 +19,14 @@ var host = new HostBuilder()
     })
     .ConfigureServices((context, services) =>
     {
+        services.Configure<WorkerOptions>(workerOptions =>
+        {
+            workerOptions.Serializer = new Azure.Core.Serialization.JsonObjectSerializer(
+                new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                });
+        });
         var configuration = context.Configuration;
 
         services.AddApplicationInsightsTelemetryWorkerService();
