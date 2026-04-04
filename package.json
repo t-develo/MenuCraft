@@ -8,6 +8,8 @@
     "test": "tests"
   },
   "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
@@ -20,7 +22,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.58.2",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0"
   },
   "dependencies": {
     "playwright": "^1.58.2",
