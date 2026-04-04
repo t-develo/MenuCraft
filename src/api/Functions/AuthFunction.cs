@@ -1,11 +1,15 @@
+#nullable enable
+
 using System.Net;
 using MenuCraft.Api.Dtos;
 using MenuCraft.Api.Dtos.Auth;
 using MenuCraft.Api.Models;
+using MenuCraft.Api.Repositories;
 using MenuCraft.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace MenuCraft.Api.Functions;
@@ -14,15 +18,21 @@ public class AuthFunction
 {
     private readonly UserManager<User> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<AuthFunction> _logger;
 
     public AuthFunction(
         UserManager<User> userManager,
         IJwtTokenService jwtTokenService,
+        IRefreshTokenRepository refreshTokenRepository,
+        IConfiguration configuration,
         ILogger<AuthFunction> logger)
     {
         _userManager = userManager;
         _jwtTokenService = jwtTokenService;
+        _refreshTokenRepository = refreshTokenRepository;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -70,7 +80,7 @@ public class AuthFunction
         _logger.LogInformation("User registered: {Email}", request.Email);
 
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
-        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+        var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id, cancellationToken);
 
         var response = req.CreateResponse(HttpStatusCode.Created);
         await response.WriteAsJsonAsync(
@@ -119,7 +129,7 @@ public class AuthFunction
         _logger.LogInformation("User logged in: {Email}", request.Email);
 
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
-        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+        var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id, cancellationToken);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(
@@ -145,7 +155,9 @@ public class AuthFunction
             return badResponse;
         }
 
-        if (!_jwtTokenService.ValidateRefreshToken(request.RefreshToken))
+        var storedToken = await _refreshTokenRepository.FindByTokenAsync(request.RefreshToken, cancellationToken);
+
+        if (storedToken is null || !storedToken.IsActive || storedToken.User is null)
         {
             var unauthorizedResponse = req.CreateResponse(HttpStatusCode.Unauthorized);
             await unauthorizedResponse.WriteAsJsonAsync(
@@ -153,12 +165,50 @@ public class AuthFunction
             return unauthorizedResponse;
         }
 
-        // In a production system, we would look up the refresh token in the database
-        // to find the associated user. For MVP, we return a generic error since
-        // refresh token storage is not yet implemented.
-        var errorResponse = req.CreateResponse(HttpStatusCode.Unauthorized);
-        await errorResponse.WriteAsJsonAsync(
-            ApiResponse.Fail("リフレッシュトークンの検証に失敗しました。再ログインしてください"), cancellationToken);
-        return errorResponse;
+        // トークンローテーション: 旧トークンを失効させ、新しいトークンペアを発行
+        await _refreshTokenRepository.RevokeAsync(storedToken, cancellationToken);
+
+        var user = storedToken.User;
+        // User エンティティの最新情報（FamilyGroupId 等）を取得
+        var latestUser = await _userManager.FindByIdAsync(user.Id.ToString());
+        if (latestUser is null)
+        {
+            var unauthorizedResponse = req.CreateResponse(HttpStatusCode.Unauthorized);
+            await unauthorizedResponse.WriteAsJsonAsync(
+                ApiResponse.Fail("ユーザーが見つかりません"), cancellationToken);
+            return unauthorizedResponse;
+        }
+
+        var newAccessToken = _jwtTokenService.GenerateAccessToken(latestUser);
+        var newRefreshToken = await CreateAndSaveRefreshTokenAsync(latestUser.Id, cancellationToken);
+
+        _logger.LogInformation("Refresh token rotated for user {UserId}", latestUser.Id);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        await response.WriteAsJsonAsync(
+            ApiResponse<AuthResponse>.Ok(new AuthResponse(
+                newAccessToken,
+                newRefreshToken,
+                DateTime.UtcNow.AddHours(1))),
+            cancellationToken);
+        return response;
+    }
+
+    private async Task<string> CreateAndSaveRefreshTokenAsync(Guid userId, CancellationToken ct)
+    {
+        var expirationDays = int.Parse(
+            _configuration["Jwt:RefreshTokenExpirationDays"] ?? "30");
+
+        var tokenValue = _jwtTokenService.GenerateRefreshToken();
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = userId,
+            Token = tokenValue,
+            ExpiresAt = DateTime.UtcNow.AddDays(expirationDays),
+        };
+
+        await _refreshTokenRepository.CreateAsync(refreshToken, ct);
+        return tokenValue;
     }
 }

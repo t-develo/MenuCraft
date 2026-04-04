@@ -20,6 +20,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<MealPlan> MealPlans => Set<MealPlan>();
     public DbSet<MealPlanRecipe> MealPlanRecipes => Set<MealPlanRecipe>();
     public DbSet<ShoppingListCheck> ShoppingListChecks => Set<ShoppingListCheck>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -130,6 +131,20 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
             entity.HasIndex(s => new { s.FamilyGroupId, s.WeekStartDate, s.IngredientName })
                 .IsUnique();
+        });
+
+        // RefreshToken
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.Property(r => r.Token).HasMaxLength(128).IsRequired();
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(r => r.Token).IsUnique();
+            entity.HasIndex(r => r.UserId);
         });
     }
 }
