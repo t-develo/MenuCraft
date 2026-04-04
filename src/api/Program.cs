@@ -10,9 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-using MenuCraft.Api.Data;
-using Microsoft.AspNetCore.Identity;
-
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(builder =>
     {
@@ -84,6 +81,7 @@ var host = new HostBuilder()
         services.AddSingleton<IIngredientParserService, IngredientParserService>();
 
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IProfileService, ProfileService>();
     })
     .Build();
 
