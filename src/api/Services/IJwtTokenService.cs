@@ -4,7 +4,6 @@ namespace MenuCraft.Api.Services;
 
 public interface IJwtTokenService
 {
-    string GenerateAccessToken(User user);
+    string GenerateAccessToken(User user, string role);
     string GenerateRefreshToken();
-    bool ValidateRefreshToken(string token);
 }

@@ -20,7 +20,7 @@ public class JwtTokenService : IJwtTokenService
         _logger = logger;
     }
 
-    public string GenerateAccessToken(User user)
+    public string GenerateAccessToken(User user, string role)
     {
         var secret = _configuration["Jwt:Secret"]
             ?? throw new InvalidOperationException("JWT secret not configured.");
@@ -40,6 +40,7 @@ public class JwtTokenService : IJwtTokenService
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Email, user.Email ?? string.Empty),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("role", role),
         };
 
         if (user.FamilyGroupId.HasValue)
@@ -67,21 +68,4 @@ public class JwtTokenService : IJwtTokenService
         return Convert.ToBase64String(randomBytes);
     }
 
-    public bool ValidateRefreshToken(string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            return false;
-        }
-
-        try
-        {
-            var bytes = Convert.FromBase64String(token);
-            return bytes.Length == 64;
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
-    }
 }

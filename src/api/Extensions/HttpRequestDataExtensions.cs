@@ -43,4 +43,19 @@ public static class HttpRequestDataExtensions
         return context.GetFamilyGroupId()
             ?? throw new UnauthorizedAccessException("User is not a member of any family group.");
     }
+
+    public static string? GetUserRole(this FunctionContext context)
+    {
+        var principal = context.GetUser();
+        return principal.FindFirst("role")?.Value;
+    }
+
+    public static void RequireAdmin(this FunctionContext context)
+    {
+        var role = context.GetUserRole();
+        if (role != "Admin")
+        {
+            throw new UnauthorizedAccessException("Admin role required.");
+        }
+    }
 }

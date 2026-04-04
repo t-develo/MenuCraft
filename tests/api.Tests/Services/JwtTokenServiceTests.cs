@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using FluentAssertions;
 using MenuCraft.Api.Models;
 using MenuCraft.Api.Services;
@@ -40,7 +41,7 @@ public class JwtTokenServiceTests
         };
 
         // Act
-        var token = _sut.GenerateAccessToken(user);
+        var token = _sut.GenerateAccessToken(user, "User");
 
         // Assert
         token.Should().NotBeNullOrWhiteSpace();
@@ -60,10 +61,35 @@ public class JwtTokenServiceTests
         };
 
         // Act
-        var token = _sut.GenerateAccessToken(user);
+        var token = _sut.GenerateAccessToken(user, "User");
 
         // Assert
         token.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("User")]
+    public void GenerateAccessToken_WithRole_IncludesRoleClaimInToken(string role)
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "test@example.com",
+            FamilyGroupId = null
+        };
+
+        // Act
+        var token = _sut.GenerateAccessToken(user, role);
+
+        // Assert
+        var handler = new JwtSecurityTokenHandler();
+        var parsed = handler.ReadJwtToken(token);
+        var roleClaim = parsed.Claims.FirstOrDefault(c => c.Type == "role");
+        roleClaim.Should().NotBeNull("role claim should be present in JWT");
+        roleClaim!.Value.Should().Be(role);
     }
 
     [Fact]
@@ -87,41 +113,5 @@ public class JwtTokenServiceTests
 
         // Assert
         token1.Should().NotBe(token2);
-    }
-
-    [Fact]
-    public void ValidateRefreshToken_WithValidToken_ReturnsTrue()
-    {
-        // Arrange
-        var token = _sut.GenerateRefreshToken();
-
-        // Act
-        var result = _sut.ValidateRefreshToken(token);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    [InlineData("not-base64")]
-    public void ValidateRefreshToken_WithInvalidToken_ReturnsFalse(string invalidToken)
-    {
-        // Act
-        var result = _sut.ValidateRefreshToken(invalidToken);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ValidateRefreshToken_WithNull_ReturnsFalse()
-    {
-        // Act
-        var result = _sut.ValidateRefreshToken(null!);
-
-        // Assert
-        result.Should().BeFalse();
     }
 }
