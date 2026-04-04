@@ -39,8 +39,11 @@ function parseJwtPayload(token) {
     return;
   }
 
-  // Check group membership — familyGroupId claim present in JWT
-  const hasFamilyGroup = payload['familyGroupId'] !== undefined && payload['familyGroupId'] !== null;
+  // Extract role and group membership from JWT claims
+  const hasFamilyGroup =
+    payload['familyGroupId'] !== undefined && payload['familyGroupId'] !== null;
+  const role = payload['role'] || 'User';
+  const isAdmin = role === 'Admin';
 
   const header = document.getElementById('app-header');
   const main = document.getElementById('app-main');
@@ -69,7 +72,13 @@ function parseJwtPayload(token) {
     { label: '献立ボード', page: 'mealplan' },
     { label: 'レシピ', page: 'recipes' },
     { label: '買い物リスト', page: 'shopping' },
+    { label: 'マイページ', page: 'mypage' },
   ];
+
+  // Admin-only nav item
+  if (isAdmin) {
+    navItems.push({ label: '管理', page: 'admin' });
+  }
 
   let activePage = 'mealplan';
 
@@ -104,6 +113,11 @@ function parseJwtPayload(token) {
    * @param {string} page
    */
   function navigateTo(page) {
+    // Non-admin users cannot access the admin page
+    if (page === 'admin' && !isAdmin) {
+      return;
+    }
+
     activePage = page;
 
     // Update active nav link
@@ -120,6 +134,10 @@ function parseJwtPayload(token) {
       renderRecipesPage(main);
     } else if (page === 'shopping') {
       renderShoppingListPage(main);
+    } else if (page === 'mypage') {
+      renderMyPage(main);
+    } else if (page === 'admin') {
+      renderAdminPage(main);
     }
   }
 
@@ -127,6 +145,10 @@ function parseJwtPayload(token) {
   const hashPage = window.location.hash.replace('#', '');
   if (hashPage && navLinks[hashPage]) {
     navigateTo(hashPage);
+  } else if (hashPage === 'mypage') {
+    navigateTo('mypage');
+  } else if (hashPage === 'admin' && isAdmin) {
+    navigateTo('admin');
   } else {
     navigateTo('mealplan');
   }
@@ -134,8 +156,13 @@ function parseJwtPayload(token) {
   // Update hash when navigating
   window.addEventListener('hashchange', () => {
     const page = window.location.hash.replace('#', '');
-    if (page && navLinks[page] && page !== activePage) {
+    if (page && page !== activePage) {
       navigateTo(page);
     }
   });
 })();
+
+// Export for testing (CommonJS)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { parseJwtPayload };
+}
