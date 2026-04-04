@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
 using MenuCraft.Api.Dtos.Groups;
 using MenuCraft.Api.Models;
 using MenuCraft.Api.Repositories;
+using MenuCraft.Api.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
@@ -33,7 +33,7 @@ public class GroupService : IGroupService
             throw new InvalidOperationException("既にグループに所属しています");
         }
 
-        var inviteCode = GenerateInviteCode();
+        var inviteCode = InviteCodeGenerator.Generate();
 
         var group = new FamilyGroup
         {
@@ -80,19 +80,5 @@ public class GroupService : IGroupService
             .ToList();
     }
 
-    private static string GenerateInviteCode()
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var bytes = new byte[8];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(bytes);
 
-        var code = new char[8];
-        for (var i = 0; i < code.Length; i++)
-        {
-            code[i] = chars[bytes[i] % chars.Length];
-        }
-
-        return new string(code);
-    }
 }
