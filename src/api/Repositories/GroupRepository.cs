@@ -41,4 +41,28 @@ public class GroupRepository : IGroupRepository
             .AsNoTracking()
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<FamilyGroup>> GetAllAsync(CancellationToken ct = default)
+    {
+        return await _context.FamilyGroups
+            .Include(g => g.Members)
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
+
+    public async Task<FamilyGroup> UpdateAsync(FamilyGroup group, CancellationToken ct = default)
+    {
+        _context.FamilyGroups.Update(group);
+        await _context.SaveChangesAsync(ct);
+        return group;
+    }
+
+    public async Task DeleteAsync(int id, CancellationToken ct = default)
+    {
+        var group = await _context.FamilyGroups.FindAsync([id], ct)
+            ?? throw new KeyNotFoundException($"グループ (Id={id}) が見つかりません");
+
+        _context.FamilyGroups.Remove(group);
+        await _context.SaveChangesAsync(ct);
+    }
 }

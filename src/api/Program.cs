@@ -82,6 +82,8 @@ var host = new HostBuilder()
 
         services.AddSingleton<IOgpService, OgpService>();
         services.AddSingleton<IIngredientParserService, IngredientParserService>();
+
+        services.AddScoped<IAdminService, AdminService>();
     })
     .Build();
 

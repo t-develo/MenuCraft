@@ -3,8 +3,8 @@ namespace MenuCraft.Api.Models;
 public class FamilyGroup
 {
     public int Id { get; init; }
-    public string Name { get; init; } = string.Empty;
-    public string InviteCode { get; init; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string InviteCode { get; set; } = string.Empty;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     public ICollection<User> Members { get; init; } = new List<User>();

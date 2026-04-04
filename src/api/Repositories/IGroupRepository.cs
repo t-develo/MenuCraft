@@ -8,4 +8,7 @@ public interface IGroupRepository
     Task<FamilyGroup?> FindByInviteCodeAsync(string inviteCode, CancellationToken ct = default);
     Task<FamilyGroup> CreateAsync(FamilyGroup group, CancellationToken ct = default);
     Task<IReadOnlyList<User>> GetMembersAsync(int groupId, CancellationToken ct = default);
+    Task<IReadOnlyList<FamilyGroup>> GetAllAsync(CancellationToken ct = default);
+    Task<FamilyGroup> UpdateAsync(FamilyGroup group, CancellationToken ct = default);
+    Task DeleteAsync(int id, CancellationToken ct = default);
 }
