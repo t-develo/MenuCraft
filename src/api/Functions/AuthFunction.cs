@@ -9,6 +9,7 @@ using MenuCraft.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,7 @@ namespace MenuCraft.Api.Functions;
 public class AuthFunction
 {
     private readonly UserManager<User> _userManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IConfiguration _configuration;
@@ -24,12 +26,14 @@ public class AuthFunction
 
     public AuthFunction(
         UserManager<User> userManager,
+        RoleManager<IdentityRole<Guid>> roleManager,
         IJwtTokenService jwtTokenService,
         IRefreshTokenRepository refreshTokenRepository,
         IConfiguration configuration,
         ILogger<AuthFunction> logger)
     {
         _userManager = userManager;
+        _roleManager = roleManager;
         _jwtTokenService = jwtTokenService;
         _refreshTokenRepository = refreshTokenRepository;
         _configuration = configuration;
@@ -79,7 +83,12 @@ public class AuthFunction
 
         _logger.LogInformation("User registered: {Email}", request.Email);
 
-        var accessToken = _jwtTokenService.GenerateAccessToken(user);
+        // 最初の登録ユーザーを Admin、それ以降は User にする
+        var isFirstUser = await _userManager.Users.CountAsync(cancellationToken) == 1;
+        var role = isFirstUser ? "Admin" : "User";
+        await _userManager.AddToRoleAsync(user, role);
+
+        var accessToken = _jwtTokenService.GenerateAccessToken(user, role);
         var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id, cancellationToken);
 
         var response = req.CreateResponse(HttpStatusCode.Created);
@@ -128,7 +137,15 @@ public class AuthFunction
 
         _logger.LogInformation("User logged in: {Email}", request.Email);
 
-        var accessToken = _jwtTokenService.GenerateAccessToken(user);
+        // 既存ユーザーにロールがない場合（既存データ対応）"User" を自動付与
+        var roles = await _userManager.GetRolesAsync(user);
+        var role = roles.FirstOrDefault() ?? "User";
+        if (!roles.Any())
+        {
+            await _userManager.AddToRoleAsync(user, role);
+        }
+
+        var accessToken = _jwtTokenService.GenerateAccessToken(user, role);
         var refreshToken = await CreateAndSaveRefreshTokenAsync(user.Id, cancellationToken);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
@@ -179,7 +196,10 @@ public class AuthFunction
             return unauthorizedResponse;
         }
 
-        var newAccessToken = _jwtTokenService.GenerateAccessToken(latestUser);
+        var latestRoles = await _userManager.GetRolesAsync(latestUser);
+        var latestRole = latestRoles.FirstOrDefault() ?? "User";
+
+        var newAccessToken = _jwtTokenService.GenerateAccessToken(latestUser, latestRole);
         var newRefreshToken = await CreateAndSaveRefreshTokenAsync(latestUser.Id, cancellationToken);
 
         _logger.LogInformation("Refresh token rotated for user {UserId}", latestUser.Id);

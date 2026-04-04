@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+using MenuCraft.Api.Data;
+using Microsoft.AspNetCore.Identity;
+
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(builder =>
     {
@@ -48,6 +51,7 @@ var host = new HostBuilder()
                 options.Password.RequireNonAlphanumeric = false;
                 options.User.RequireUniqueEmail = true;
             })
+            .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>();
 
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
@@ -80,5 +84,15 @@ var host = new HostBuilder()
         services.AddSingleton<IIngredientParserService, IngredientParserService>();
     })
     .Build();
+
+// ロールを冪等に作成
+using (var scope = host.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole<Guid>>>();
+    if (roleManager is not null)
+    {
+        await RoleSeeder.SeedAsync(roleManager);
+    }
+}
 
 host.Run();

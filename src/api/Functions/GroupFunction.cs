@@ -9,6 +9,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace MenuCraft.Api.Functions;
 
 public class GroupFunction
@@ -28,6 +30,12 @@ public class GroupFunction
         _jwtTokenService = jwtTokenService;
         _userManager = userManager;
         _logger = logger;
+    }
+
+    private async Task<string> GetUserRoleAsync(User user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+        return roles.FirstOrDefault() ?? "User";
     }
 
     [Function("CreateGroup")]
@@ -55,7 +63,8 @@ public class GroupFunction
             // GroupService.CreateGroupAsync already validates user exists; null here is unreachable.
             var user = await _userManager.FindByIdAsync(userId.ToString())
                 ?? throw new InvalidOperationException("User not found after group creation.");
-            var newToken = _jwtTokenService.GenerateAccessToken(user);
+            var role = await GetUserRoleAsync(user);
+            var newToken = _jwtTokenService.GenerateAccessToken(user, role);
 
             var response = req.CreateResponse(HttpStatusCode.Created);
             await response.WriteAsJsonAsync(
@@ -102,7 +111,8 @@ public class GroupFunction
             // GroupService.JoinGroupAsync already validates user exists; null here is unreachable.
             var user = await _userManager.FindByIdAsync(userId.ToString())
                 ?? throw new InvalidOperationException("User not found after joining group.");
-            var newToken = _jwtTokenService.GenerateAccessToken(user);
+            var role = await GetUserRoleAsync(user);
+            var newToken = _jwtTokenService.GenerateAccessToken(user, role);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(
