@@ -52,6 +52,8 @@ var host = new HostBuilder()
 
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IGroupService, GroupService>();
 
