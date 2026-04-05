@@ -321,6 +321,66 @@ BEGIN
 END;
 GO
 
+-- -----------------------------------------------------------------------------
+-- 6. RefreshTokens (Phase 1: リフレッシュトークン基盤)
+-- -----------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'RefreshTokens')
+BEGIN
+    CREATE TABLE RefreshTokens (
+        Id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+        UserId     UNIQUEIDENTIFIER NOT NULL,
+        Token      NVARCHAR(128)    NOT NULL,
+        ExpiresAt  DATETIME2        NOT NULL,
+        CreatedAt  DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+        IsRevoked  BIT              NOT NULL DEFAULT 0,
+        DeviceInfo NVARCHAR(MAX)    NULL,
+
+        CONSTRAINT PK_RefreshTokens PRIMARY KEY (Id),
+        CONSTRAINT FK_RefreshTokens_AspNetUsers FOREIGN KEY (UserId)
+            REFERENCES AspNetUsers (Id) ON DELETE CASCADE
+    );
+
+    CREATE UNIQUE INDEX UQ_RefreshTokens_Token ON RefreshTokens (Token);
+    CREATE INDEX IX_RefreshTokens_UserId ON RefreshTokens (UserId);
+END;
+GO
+
+-- -----------------------------------------------------------------------------
+-- 7. Seed: Admin/User ロール (Phase 2: ユーザーロール基盤)
+-- -----------------------------------------------------------------------------
+
+-- Admin ロール
+IF NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'ADMIN')
+BEGIN
+    INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
+    VALUES (NEWID(), 'Admin', 'ADMIN', NEWID());
+END;
+GO
+
+-- User ロール
+IF NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'USER')
+BEGIN
+    INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
+    VALUES (NEWID(), 'User', 'USER', NEWID());
+END;
+GO
+
+-- ロール未付与の既存ユーザーに 'User' ロールを一括付与
+-- ※ Admin昇格が必要なユーザーは手動対応（下記コメント参照）
+INSERT INTO AspNetUserRoles (UserId, RoleId)
+SELECT u.Id, r.Id
+FROM   AspNetUsers u
+JOIN   AspNetRoles r ON r.NormalizedName = 'USER'
+WHERE  NOT EXISTS (
+    SELECT 1 FROM AspNetUserRoles ur WHERE ur.UserId = u.Id
+);
+GO
+
+-- Admin昇格が必要な場合は以下を手動実行:
+-- UPDATE AspNetUserRoles
+-- SET RoleId = (SELECT Id FROM AspNetRoles WHERE NormalizedName = 'ADMIN')
+-- WHERE UserId = '<対象ユーザーのGUID>';
+
 -- =============================================================================
 -- Setup complete.
 -- =============================================================================

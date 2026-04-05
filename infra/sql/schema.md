@@ -21,7 +21,8 @@ AspNetUsers
   ├──< AspNetUserClaims  (UserId, CASCADE)
   ├──< AspNetUserLogins  (UserId, CASCADE)
   ├──< AspNetUserTokens  (UserId, CASCADE)
-  └──< AspNetUserRoles   (UserId, CASCADE)
+  ├──< AspNetUserRoles   (UserId, CASCADE)
+  └──< RefreshTokens     (UserId, CASCADE)
 
 AspNetRoles
   ├──< AspNetRoleClaims  (RoleId, CASCADE)
@@ -215,6 +216,20 @@ AspNetRoles
 
 ---
 
+### RefreshTokens
+
+| Column     | Type             | Nullable | Default          | Notes                     |
+|------------|------------------|----------|------------------|---------------------------|
+| Id         | UNIQUEIDENTIFIER | NO       | NEWID()          | PK                        |
+| UserId     | UNIQUEIDENTIFIER | NO       |                  | FK → AspNetUsers, CASCADE |
+| Token      | NVARCHAR(128)    | NO       |                  | UNIQUE                    |
+| ExpiresAt  | DATETIME2        | NO       |                  |                           |
+| CreatedAt  | DATETIME2        | NO       | SYSUTCDATETIME() |                           |
+| IsRevoked  | BIT              | NO       | 0                |                           |
+| DeviceInfo | NVARCHAR(MAX)    | YES      |                  |                           |
+
+---
+
 ## Indexes Summary
 
 | Table              | Index Name                                | Columns                              | Type   |
@@ -235,3 +250,5 @@ AspNetRoles
 | MealPlanRecipes    | UQ_MealPlanRecipes_MealPlanRecipe         | MealPlanId, RecipeId                 | UNIQUE |
 | MealPlanRecipes    | IX_MealPlanRecipes_RecipeId               | RecipeId                             |        |
 | ShoppingListChecks | UQ_ShoppingListChecks_GroupWeekIngredient | FamilyGroupId, WeekStartDate, IngredientName | UNIQUE |
+| RefreshTokens      | UQ_RefreshTokens_Token                   | Token                                        | UNIQUE |
+| RefreshTokens      | IX_RefreshTokens_UserId                  | UserId                                       |        |
