@@ -50,6 +50,8 @@ public class AdminServiceTests
             .ReturnsAsync(new List<string> { "Admin" });
         _mockUserManager.Setup(m => m.GetRolesAsync(users[1]))
             .ReturnsAsync(new List<string> { "User" });
+        _mockGroupRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FamilyGroup> { group });
 
         // Act
         var result = await _sut.GetAllUsersAsync();
@@ -75,6 +77,8 @@ public class AdminServiceTests
             .Returns(new List<User> { user }.AsQueryable());
         _mockUserManager.Setup(m => m.GetRolesAsync(user))
             .ReturnsAsync(new List<string>());
+        _mockGroupRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FamilyGroup>());
 
         // Act
         var result = await _sut.GetAllUsersAsync();

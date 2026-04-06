@@ -30,19 +30,31 @@ public class AdminService : IAdminService
 
     public async Task<IReadOnlyList<UserListResponse>> GetAllUsersAsync(CancellationToken ct = default)
     {
-        var users = _userManager.Users.Include(u => u.FamilyGroup).ToList();
-        var result = new List<UserListResponse>(users.Count);
+        var users = _userManager.Users.AsNoTracking().ToList();
 
+        // Load all groups once for an efficient lookup (avoids calling Include on UserManager,
+        // which is an Identity abstraction and should not be used with EF Core navigation loading).
+        var groupMap = (await _groupRepository.GetAllAsync(ct))
+            .ToDictionary(g => g.Id);
+
+        var result = new List<UserListResponse>(users.Count);
         foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
             var role = roles.FirstOrDefault() ?? string.Empty;
+
+            FamilyGroup? group = null;
+            if (user.FamilyGroupId.HasValue)
+            {
+                groupMap.TryGetValue(user.FamilyGroupId.Value, out group);
+            }
+
             result.Add(new UserListResponse(
                 user.Id,
                 user.Email ?? string.Empty,
                 role,
                 user.FamilyGroupId,
-                user.FamilyGroup?.Name,
+                group?.Name,
                 user.CreatedAt));
         }
 
