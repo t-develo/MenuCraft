@@ -23,7 +23,10 @@
             <input type="password" id="password" name="password" required autocomplete="current-password">
           </div>
           <div id="login-error" class="error-message" hidden></div>
-          <button type="submit" class="btn btn-primary">ログイン</button>
+          <button type="submit" id="login-submit" class="btn btn-primary">
+            <span class="btn-label">ログイン</span>
+            <span class="spinner" hidden aria-hidden="true"></span>
+          </button>
         </form>
         <p class="auth-link">
           アカウントをお持ちでない方は<a href="/register.html">新規登録</a>
