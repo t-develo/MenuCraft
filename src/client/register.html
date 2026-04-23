@@ -27,7 +27,10 @@
             <input type="password" id="confirm-password" name="confirmPassword" required minlength="8" autocomplete="new-password">
           </div>
           <div id="register-error" class="error-message" hidden></div>
-          <button type="submit" class="btn btn-primary">登録</button>
+          <button type="submit" id="register-submit" class="btn btn-primary">
+            <span class="btn-label">登録</span>
+            <span class="spinner" hidden aria-hidden="true"></span>
+          </button>
         </form>
         <p class="auth-link">
           既にアカウントをお持ちの方は<a href="/login.html">ログイン</a>
