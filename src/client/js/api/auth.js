@@ -4,7 +4,7 @@
  * Auth API client and form handlers.
  */
 
-let _redirect = (url) => {
+let _authRedirect = (url) => {
   window.location.href = url;
 };
 
@@ -105,7 +105,7 @@ async function handleLoginSubmit(e) {
     const data = await response.json();
     localStorage.setItem('authToken', data.data.accessToken);
     localStorage.setItem('refreshToken', data.data.refreshToken);
-    _redirect('/');
+    _authRedirect('/');
   } catch (error) {
     console.error('Login failed:', error);
     showAuthError('login-error', 'ログインに失敗しました');
@@ -156,7 +156,7 @@ async function handleRegisterSubmit(e) {
     const data = await response.json();
     localStorage.setItem('authToken', data.data.accessToken);
     localStorage.setItem('refreshToken', data.data.refreshToken);
-    _redirect('/');
+    _authRedirect('/');
   } catch (error) {
     console.error('Registration failed:', error);
     showAuthError('register-error', '登録に失敗しました');
@@ -181,6 +181,6 @@ if (typeof module !== 'undefined' && module.exports) {
     handleLoginSubmit,
     handleRegisterSubmit,
     setFormLoading,
-    _setRedirect: (fn) => { _redirect = fn; },
+    _setRedirect: (fn) => { _authRedirect = fn; },
   };
 }
