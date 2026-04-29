@@ -24,7 +24,7 @@ describe('ProfileApi.getProfile', () => {
   test('GET /api/profile を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({}),
+      json: jest.fn().mockResolvedValue({ success: true, data: {}, error: null }),
     });
 
     await ProfileApi.getProfile();
@@ -43,12 +43,18 @@ describe('ProfileApi.getProfile', () => {
     };
     global.apiFetch.mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue(profile),
+      json: jest.fn().mockResolvedValue({ success: true, data: profile, error: null }),
     });
 
     const result = await ProfileApi.getProfile();
 
     expect(result).toEqual(profile);
+  });
+
+  test('HTTPエラー時に例外をスローする', async () => {
+    global.apiFetch.mockResolvedValue({ ok: false, status: 404 });
+
+    await expect(ProfileApi.getProfile()).rejects.toThrow('HTTP 404');
   });
 });
 
@@ -56,7 +62,7 @@ describe('ProfileApi.changePassword', () => {
   test('PUT /api/profile/password を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({}),
+      json: jest.fn().mockResolvedValue({ success: true, data: {}, error: null }),
     });
 
     await ProfileApi.changePassword('oldPass123', 'newPass456');
@@ -74,12 +80,21 @@ describe('ProfileApi.changePassword', () => {
     const tokens = { accessToken: 'new-token', refreshToken: 'new-refresh' };
     global.apiFetch.mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue(tokens),
+      json: jest.fn().mockResolvedValue({ success: true, data: tokens, error: null }),
     });
 
     const result = await ProfileApi.changePassword('old', 'new');
 
     expect(result).toEqual(tokens);
+  });
+
+  test('HTTPエラー時にエラーメッセージをスローする', async () => {
+    global.apiFetch.mockResolvedValue({
+      ok: false,
+      json: jest.fn().mockResolvedValue({ success: false, data: null, error: 'パスワードが違います' }),
+    });
+
+    await expect(ProfileApi.changePassword('wrong', 'new')).rejects.toThrow('パスワードが違います');
   });
 });
 
@@ -87,7 +102,7 @@ describe('ProfileApi.leaveGroup', () => {
   test('POST /api/profile/leave-group を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({}),
+      json: jest.fn().mockResolvedValue({ success: true, data: {}, error: null }),
     });
 
     await ProfileApi.leaveGroup();
@@ -102,11 +117,20 @@ describe('ProfileApi.leaveGroup', () => {
     const tokens = { accessToken: 'new-no-group-token', refreshToken: 'new-refresh' };
     global.apiFetch.mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue(tokens),
+      json: jest.fn().mockResolvedValue({ success: true, data: tokens, error: null }),
     });
 
     const result = await ProfileApi.leaveGroup();
 
     expect(result).toEqual(tokens);
+  });
+
+  test('HTTPエラー時にエラーメッセージをスローする', async () => {
+    global.apiFetch.mockResolvedValue({
+      ok: false,
+      json: jest.fn().mockResolvedValue({ success: false, data: null, error: 'グループに参加していません' }),
+    });
+
+    await expect(ProfileApi.leaveGroup()).rejects.toThrow('グループに参加していません');
   });
 });

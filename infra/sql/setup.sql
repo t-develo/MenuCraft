@@ -381,6 +381,59 @@ GO
 -- SET RoleId = (SELECT Id FROM AspNetRoles WHERE NormalizedName = 'ADMIN')
 -- WHERE UserId = '<対象ユーザーのGUID>';
 
+-- -----------------------------------------------------------------------------
+-- 8. Seed: 既定の管理者アカウント
+-- -----------------------------------------------------------------------------
+-- 初期管理者アカウント:
+--   メールアドレス : admin@menucraft.local
+--   パスワード     : Admin1234!   ← 初回ログイン後に必ず変更してください
+--
+-- PasswordHash は ASP.NET Identity v3 / PBKDF2-HMACSHA256 / 100,000 iterations
+-- salt: "menucraft_admin_" (16 bytes, UTF-8 固定)
+-- ハッシュを再生成する場合は以下 Node.js コマンドを使用:
+--   node -e "
+--     const c=require('crypto'),s=Buffer.from('menucraft_admin_','utf8');
+--     const h=c.pbkdf2Sync('Admin1234!',s,100000,32,'sha256');
+--     const hdr=Buffer.from([0x01,0x00,0x00,0x00,0x01,0x00,0x01,0x86,0xa0,0x00,0x00,0x00,0x10]);
+--     console.log(Buffer.concat([hdr,s,h]).toString('base64'));
+--   "
+-- -----------------------------------------------------------------------------
+
+DECLARE @AdminEmail NVARCHAR(256) = 'admin@menucraft.local';
+DECLARE @AdminId UNIQUEIDENTIFIER;
+
+IF NOT EXISTS (SELECT 1 FROM AspNetUsers WHERE NormalizedEmail = 'ADMIN@MENUCRAFT.LOCAL')
+BEGIN
+    SET @AdminId = NEWID();
+
+    INSERT INTO AspNetUsers (
+        Id, UserName, NormalizedUserName, Email, NormalizedEmail,
+        EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
+        PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled,
+        AccessFailedCount, FamilyGroupId, CreatedAt
+    )
+    VALUES (
+        @AdminId,
+        @AdminEmail,
+        'ADMIN@MENUCRAFT.LOCAL',
+        @AdminEmail,
+        'ADMIN@MENUCRAFT.LOCAL',
+        1,
+        'AQAAAAEAAYagAAAAEG1lbnVjcmFmdF9hZG1pbl/q4rmGEqDcTqk2G9xpxpLe0B9TTElfkEC1yJ8TOVxEOA==',
+        NEWID(),
+        NEWID(),
+        0, 0, 1, 0,
+        NULL,
+        SYSUTCDATETIME()
+    );
+
+    INSERT INTO AspNetUserRoles (UserId, RoleId)
+    SELECT @AdminId, r.Id
+    FROM   AspNetRoles r
+    WHERE  r.NormalizedName = 'ADMIN';
+END;
+GO
+
 -- =============================================================================
 -- Setup complete.
 -- =============================================================================

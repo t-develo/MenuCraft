@@ -11,7 +11,9 @@ const ProfileApi = {
    */
   async getProfile() {
     const res = await apiFetch('/api/profile');
-    return res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    return body.data;
   },
 
   /**
@@ -25,7 +27,12 @@ const ProfileApi = {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
-    return res.json();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'パスワードの変更に失敗しました');
+    }
+    const body = await res.json();
+    return body.data;
   },
 
   /**
@@ -34,7 +41,12 @@ const ProfileApi = {
    */
   async leaveGroup() {
     const res = await apiFetch('/api/profile/leave-group', { method: 'POST' });
-    return res.json();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'グループの脱退に失敗しました');
+    }
+    const body = await res.json();
+    return body.data;
   },
 };
 

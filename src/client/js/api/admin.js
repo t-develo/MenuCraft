@@ -11,21 +11,26 @@ const AdminApi = {
    */
   async getUsers() {
     const res = await apiFetch('/api/admin/users');
-    return res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    return body.data;
   },
 
   /**
    * Change a user's role.
    * @param {string} userId
    * @param {string} role - 'Admin' or 'User'
-   * @returns {Promise<object>}
+   * @returns {Promise<void>}
    */
   async changeRole(userId, role) {
     const res = await apiFetch(`/api/admin/users/${userId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),
     });
-    return res.json();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'ロールの変更に失敗しました');
+    }
   },
 
   /**
@@ -34,7 +39,9 @@ const AdminApi = {
    */
   async getGroups() {
     const res = await apiFetch('/api/admin/groups');
-    return res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    return body.data;
   },
 
   /**
@@ -81,7 +88,9 @@ const AdminApi = {
     const res = await apiFetch(`/api/admin/groups/${groupId}/invite-code`, {
       method: 'POST',
     });
-    return res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    return body.data;
   },
 };
 
