@@ -47,7 +47,10 @@ public static class HttpRequestDataExtensions
     public static string? GetUserRole(this FunctionContext context)
     {
         var principal = context.GetUser();
-        return principal.FindFirst("role")?.Value;
+        // JwtSecurityTokenHandler maps the inbound "role" claim to ClaimTypes.Role
+        // when MapInboundClaims is true (the default), so check both names.
+        return principal.FindFirst("role")?.Value
+            ?? principal.FindFirst(ClaimTypes.Role)?.Value;
     }
 
     public static void RequireAdmin(this FunctionContext context)

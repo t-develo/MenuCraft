@@ -1,7 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 using FluentAssertions;
 using MenuCraft.Api.Extensions;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.IdentityModel.Tokens;
 using Moq;
 
 namespace MenuCraft.Api.Tests.Extensions;
@@ -114,5 +117,72 @@ public class HttpRequestDataExtensionsTests
 
         // Assert
         act.Should().Throw<UnauthorizedAccessException>();
+    }
+
+    // Regression: the production JwtSecurityTokenHandler maps the inbound "role" claim to
+    // ClaimTypes.Role (because MapInboundClaims defaults to true). GetUserRole / RequireAdmin
+    // must work against the validated principal, not just the literal "role" claim type.
+    [Fact]
+    public void GetUserRole_WithJwtValidatedPrincipal_ReturnsRole()
+    {
+        var principal = ValidateJwtAsPrincipal("Admin");
+        var context = CreateContextWithPrincipal(principal);
+
+        context.GetUserRole().Should().Be("Admin");
+    }
+
+    [Fact]
+    public void RequireAdmin_WithJwtValidatedAdminPrincipal_DoesNotThrow()
+    {
+        var principal = ValidateJwtAsPrincipal("Admin");
+        var context = CreateContextWithPrincipal(principal);
+
+        var act = () => context.RequireAdmin();
+
+        act.Should().NotThrow();
+    }
+
+    private static FunctionContext CreateContextWithPrincipal(ClaimsPrincipal principal)
+    {
+        var items = new Dictionary<object, object?> { ["User"] = principal };
+        var mockContext = new Mock<FunctionContext>();
+        mockContext.Setup(c => c.Items).Returns(items);
+        return mockContext.Object;
+    }
+
+    private static ClaimsPrincipal ValidateJwtAsPrincipal(string role)
+    {
+        const string secret = "ThisIsATestSecretKeyThatIsLongEnoughForHmacSha256!";
+        const string issuer = "https://test.example.com";
+        const string audience = "menucraft-api-test";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+            new Claim("role", role),
+        };
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(30),
+            signingCredentials: creds);
+        var serialized = new JwtSecurityTokenHandler().WriteToken(token);
+
+        var validation = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = issuer,
+            ValidateAudience = true,
+            ValidAudience = audience,
+            IssuerSigningKey = key,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1),
+        };
+        return new JwtSecurityTokenHandler().ValidateToken(serialized, validation, out _);
     }
 }
