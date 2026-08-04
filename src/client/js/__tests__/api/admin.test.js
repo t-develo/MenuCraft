@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 describe('AdminApi.getUsers', () => {
-  test('GET /api/admin/users を呼び出す', async () => {
+  test('GET /api/management/users を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({ success: true, data: [], error: null }),
@@ -30,7 +30,7 @@ describe('AdminApi.getUsers', () => {
 
     await AdminApi.getUsers();
 
-    expect(global.apiFetch).toHaveBeenCalledWith('/api/admin/users');
+    expect(global.apiFetch).toHaveBeenCalledWith('/api/management/users');
   });
 
   test('ユーザー一覧を返す', async () => {
@@ -53,13 +53,13 @@ describe('AdminApi.getUsers', () => {
 });
 
 describe('AdminApi.changeRole', () => {
-  test('PUT /api/admin/users/{userId}/role を呼び出す', async () => {
+  test('PUT /api/management/users/{userId}/role を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({ ok: true });
 
     await AdminApi.changeRole('user-123', 'User');
 
     expect(global.apiFetch).toHaveBeenCalledWith(
-      '/api/admin/users/user-123/role',
+      '/api/management/users/user-123/role',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ role: 'User' }),
@@ -78,7 +78,7 @@ describe('AdminApi.changeRole', () => {
 });
 
 describe('AdminApi.getGroups', () => {
-  test('GET /api/admin/groups を呼び出す', async () => {
+  test('GET /api/management/groups を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({ success: true, data: [], error: null }),
@@ -86,7 +86,7 @@ describe('AdminApi.getGroups', () => {
 
     await AdminApi.getGroups();
 
-    expect(global.apiFetch).toHaveBeenCalledWith('/api/admin/groups');
+    expect(global.apiFetch).toHaveBeenCalledWith('/api/management/groups');
   });
 
   test('グループ一覧を返す', async () => {
@@ -109,7 +109,7 @@ describe('AdminApi.getGroups', () => {
 });
 
 describe('AdminApi.updateGroup', () => {
-  test('PUT /api/admin/groups/{groupId} を呼び出す', async () => {
+  test('PUT /api/management/groups/{groupId} を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({}),
@@ -118,7 +118,7 @@ describe('AdminApi.updateGroup', () => {
     await AdminApi.updateGroup(1, 'New Name');
 
     expect(global.apiFetch).toHaveBeenCalledWith(
-      '/api/admin/groups/1',
+      '/api/management/groups/1',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ name: 'New Name' }),
@@ -128,33 +128,33 @@ describe('AdminApi.updateGroup', () => {
 });
 
 describe('AdminApi.deleteGroup', () => {
-  test('DELETE /api/admin/groups/{groupId} を呼び出す', async () => {
+  test('DELETE /api/management/groups/{groupId} を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({ ok: true });
 
     await AdminApi.deleteGroup(1);
 
     expect(global.apiFetch).toHaveBeenCalledWith(
-      '/api/admin/groups/1',
+      '/api/management/groups/1',
       expect.objectContaining({ method: 'DELETE' })
     );
   });
 });
 
 describe('AdminApi.removeMember', () => {
-  test('DELETE /api/admin/groups/{groupId}/members/{userId} を呼び出す', async () => {
+  test('DELETE /api/management/groups/{groupId}/members/{userId} を呼び出す', async () => {
     global.apiFetch.mockResolvedValue({ ok: true });
 
     await AdminApi.removeMember(1, 'user-456');
 
     expect(global.apiFetch).toHaveBeenCalledWith(
-      '/api/admin/groups/1/members/user-456',
+      '/api/management/groups/1/members/user-456',
       expect.objectContaining({ method: 'DELETE' })
     );
   });
 });
 
 describe('AdminApi.regenerateInviteCode', () => {
-  test('POST /api/admin/groups/{groupId}/invite-code を呼び出す', async () => {
+  test('POST /api/management/groups/{groupId}/invite-code を呼び出す', async () => {
     const groupData = { id: 1, inviteCode: 'NEW456', name: 'Family', memberCount: 2, createdAt: '2024-01-01T00:00:00Z' };
     global.apiFetch.mockResolvedValue({
       ok: true,
@@ -164,7 +164,7 @@ describe('AdminApi.regenerateInviteCode', () => {
     const result = await AdminApi.regenerateInviteCode(1);
 
     expect(global.apiFetch).toHaveBeenCalledWith(
-      '/api/admin/groups/1/invite-code',
+      '/api/management/groups/1/invite-code',
       expect.objectContaining({ method: 'POST' })
     );
     expect(result).toEqual(groupData);

@@ -1,0 +1,69 @@
+name: CI
+
+# ラズパイでのローカル実行が主体になったため、デプロイはコミット時に自動実行しない。
+# 品質ゲートとしてのビルド・テストのみをここで実行する。
+# Azure へのデプロイは deploy-api.yml / deploy-frontend.yml を手動実行すること。
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  TEST_PROJECT_PATH: 'tests/api.Tests'
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    name: API (build & test)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.TEST_PROJECT_PATH }}/
+
+      - name: Build
+        run: dotnet build ${{ env.TEST_PROJECT_PATH }}/ --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test ${{ env.TEST_PROJECT_PATH }}/ --no-build --configuration Release --verbosity normal
+
+  client:
+    runs-on: ubuntu-latest
+    name: Client (unit tests)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+  scripts:
+    runs-on: ubuntu-latest
+    name: Raspberry Pi scripts (shellcheck)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run: shellcheck -S warning deploy/raspi/*.sh

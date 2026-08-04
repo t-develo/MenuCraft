@@ -1,11 +1,7 @@
 name: Deploy Frontend (Storage Account)
 
+# 手動実行のみ。ラズパイでのローカル実行が主体のため、コミット時の自動デプロイは行わない。
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/client/**'
   workflow_dispatch:
 
 permissions:

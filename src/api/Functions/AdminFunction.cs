@@ -25,7 +25,7 @@ public class AdminFunction
     // GET admin/users
     [Function("AdminGetUsers")]
     public async Task<HttpResponseData> GetUsersAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "admin/users")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "management/users")] HttpRequestData req,
         FunctionContext context,
         CancellationToken cancellationToken)
     {
@@ -42,7 +42,7 @@ public class AdminFunction
     // PUT admin/users/{userId}/role
     [Function("AdminChangeUserRole")]
     public async Task<HttpResponseData> ChangeUserRoleAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "admin/users/{userId}/role")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "management/users/{userId}/role")] HttpRequestData req,
         string userId,
         FunctionContext context,
         CancellationToken cancellationToken)
@@ -93,7 +93,7 @@ public class AdminFunction
     // GET admin/groups
     [Function("AdminGetGroups")]
     public async Task<HttpResponseData> GetGroupsAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "admin/groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "management/groups")] HttpRequestData req,
         FunctionContext context,
         CancellationToken cancellationToken)
     {
@@ -110,7 +110,7 @@ public class AdminFunction
     // PUT admin/groups/{groupId}
     [Function("AdminUpdateGroup")]
     public async Task<HttpResponseData> UpdateGroupAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "admin/groups/{groupId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "management/groups/{groupId}")] HttpRequestData req,
         string groupId,
         FunctionContext context,
         CancellationToken cancellationToken)
@@ -150,7 +150,7 @@ public class AdminFunction
     // DELETE admin/groups/{groupId}
     [Function("AdminDeleteGroup")]
     public async Task<HttpResponseData> DeleteGroupAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "admin/groups/{groupId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "management/groups/{groupId}")] HttpRequestData req,
         string groupId,
         FunctionContext context,
         CancellationToken cancellationToken)
@@ -181,7 +181,7 @@ public class AdminFunction
     // DELETE admin/groups/{groupId}/members/{userId}
     [Function("AdminRemoveMember")]
     public async Task<HttpResponseData> RemoveMemberAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "admin/groups/{groupId}/members/{userId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "management/groups/{groupId}/members/{userId}")] HttpRequestData req,
         string groupId,
         string userId,
         FunctionContext context,
@@ -220,7 +220,7 @@ public class AdminFunction
     // POST admin/groups/{groupId}/invite-code
     [Function("AdminRegenerateInviteCode")]
     public async Task<HttpResponseData> RegenerateInviteCodeAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "admin/groups/{groupId}/invite-code")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "management/groups/{groupId}/invite-code")] HttpRequestData req,
         string groupId,
         FunctionContext context,
         CancellationToken cancellationToken)

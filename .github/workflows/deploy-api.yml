@@ -1,11 +1,8 @@
 name: Deploy API (Azure Functions)
 
+# 手動実行のみ。ラズパイでのローカル実行が主体のため、コミット時の自動デプロイは行わない。
+# ビルド・テストは ci.yml が push / PR ごとに実行する。
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/api/**'
   workflow_dispatch:
 
 permissions:

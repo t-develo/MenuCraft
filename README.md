@@ -13,11 +13,33 @@ Web / YouTube / Instagram で見つけたレシピを一箇所に集約し、1�
 | Layer | Technology |
 |---|---|
 | Frontend | Vanilla JS SPA（ビルドステップなし） |
-| Hosting (Frontend) | Azure Storage Account 静的 Web サイト |
-| Backend (API) | Azure Functions (.NET 8 Isolated Worker, Consumption Plan) |
-| Database | Azure SQL Database (Free tier) |
+| Hosting (Frontend) | nginx（ラズパイ） / Azure Storage Account 静的 Web サイト |
+| Backend (API) | Azure Functions (.NET 8 Isolated Worker) |
+| Database | **SQLite**（ラズパイ） / Azure SQL Database (Free tier) |
 | Auth | ASP.NET Identity + JWT Bearer Token |
-| CI/CD | GitHub Actions（フロントエンド・API 独立デプロイ） |
+| CI/CD | GitHub Actions（ビルド・テストのみ自動。デプロイは手動実行） |
+
+デプロイ先は `Database:Provider` 設定で切り替えます（`Sqlite` / `SqlServer`、既定は `SqlServer`）。
+
+---
+
+## Raspberry Pi でのローカル実行
+
+家庭内 LAN の Raspberry Pi 上で単体稼働させられます（**64bit OS 必須**）。
+
+```bash
+git clone https://github.com/t-develo/MenuCraft.git
+cd MenuCraft
+sudo ./deploy/raspi/setup.sh
+```
+
+nginx（静的配信 + `/api/` のリバースプロキシ）、SQLite、systemd サービス登録、
+再起動時の自動起動、日次バックアップまでを一括で設定します。
+セットアップ後は `http://menucraft.local/` でアクセスし、新規登録した最初のユーザーが管理者になります。
+
+更新は `sudo ./deploy/raspi/deploy.sh --pull`。
+
+**詳細な手順・運用・トラブルシュートは [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) を参照してください。**
 
 ---
 
@@ -53,6 +75,11 @@ dotnet build src/api/
 # ローカル設定ファイルを作成
 cp src/api/local.settings.json.example src/api/local.settings.json
 # local.settings.json を編集して接続文字列・JWTシークレットを設定
+#   - SQLite を使う場合:  "Database:Provider": "Sqlite"
+#                         "ConnectionStrings:Default": "Data Source=menucraft.db"
+#     （スキーマは起動時に自動生成されます）
+#   - SQL Server を使う場合: "Database:Provider" を "SqlServer" にして
+#     infra/sql/setup.sql を対象DBに適用しておく
 
 # 起動
 cd src/api && func start
@@ -184,9 +211,10 @@ menucraft/
 ├── tests/
 │   ├── api.Tests/           # xUnit バックエンドテスト
 │   └── e2e/                 # Playwright E2Eテスト
+├── deploy/raspi/            # Raspberry Pi 用 (setup.sh, deploy.sh, systemd, nginx)
 ├── infra/                   # Bicep テンプレート (Storage Account, Functions, SQL)
 ├── playwright.config.js
-└── .github/workflows/       # CI/CD (deploy-frontend.yml, deploy-api.yml)
+└── .github/workflows/       # ci.yml (自動) / deploy-*.yml (手動実行のみ)
 ```
 
 ---
@@ -213,6 +241,15 @@ menucraft/
 | MealPlans | POST | `/api/mealplans/auto-fill` | 空きセルのみ自動埋め |
 | Shopping | GET | `/api/shopping-list?weekStart={date}` | 買い物リスト生成・取得 |
 | Shopping | PUT | `/api/shopping-list/check` | チェック状態更新 |
+| Management | GET | `/api/management/users` | ユーザー一覧（Admin のみ） |
+| Management | PUT | `/api/management/users/{userId}/role` | ロール変更（Admin のみ） |
+| Management | GET | `/api/management/groups` | グループ一覧（Admin のみ） |
+| Management | PUT/DELETE | `/api/management/groups/{groupId}` | グループ更新・削除（Admin のみ） |
+
+> **注意**: 管理系のルートに `admin/` は使えません。Azure Functions ホストが `/admin/*` を
+> 組み込みの管理エンドポイントとして予約しており、`admin` で始まるルートを持つ関数は
+> 「The specified route conflicts with one or more built in routes」で登録に失敗し 404 になります。
+> そのため `management/` を使用しています。
 
 ---
 

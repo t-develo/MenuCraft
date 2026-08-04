@@ -10,7 +10,7 @@ const AdminApi = {
    * @returns {Promise<Array>}
    */
   async getUsers() {
-    const res = await apiFetch('/api/admin/users');
+    const res = await apiFetch('/api/management/users');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
     return body.data;
@@ -23,7 +23,7 @@ const AdminApi = {
    * @returns {Promise<void>}
    */
   async changeRole(userId, role) {
-    const res = await apiFetch(`/api/admin/users/${userId}/role`, {
+    const res = await apiFetch(`/api/management/users/${userId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),
     });
@@ -38,7 +38,7 @@ const AdminApi = {
    * @returns {Promise<Array>}
    */
   async getGroups() {
-    const res = await apiFetch('/api/admin/groups');
+    const res = await apiFetch('/api/management/groups');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
     return body.data;
@@ -51,7 +51,7 @@ const AdminApi = {
    * @returns {Promise<object>}
    */
   async updateGroup(groupId, name) {
-    const res = await apiFetch(`/api/admin/groups/${groupId}`, {
+    const res = await apiFetch(`/api/management/groups/${groupId}`, {
       method: 'PUT',
       body: JSON.stringify({ name }),
     });
@@ -64,7 +64,7 @@ const AdminApi = {
    * @returns {Promise<void>}
    */
   async deleteGroup(groupId) {
-    await apiFetch(`/api/admin/groups/${groupId}`, { method: 'DELETE' });
+    await apiFetch(`/api/management/groups/${groupId}`, { method: 'DELETE' });
   },
 
   /**
@@ -74,7 +74,7 @@ const AdminApi = {
    * @returns {Promise<void>}
    */
   async removeMember(groupId, userId) {
-    await apiFetch(`/api/admin/groups/${groupId}/members/${userId}`, {
+    await apiFetch(`/api/management/groups/${groupId}/members/${userId}`, {
       method: 'DELETE',
     });
   },
@@ -85,7 +85,7 @@ const AdminApi = {
    * @returns {Promise<{inviteCode: string}>}
    */
   async regenerateInviteCode(groupId) {
-    const res = await apiFetch(`/api/admin/groups/${groupId}/invite-code`, {
+    const res = await apiFetch(`/api/management/groups/${groupId}/invite-code`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
