@@ -7,8 +7,10 @@ using MenuCraft.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(builder =>
@@ -33,10 +35,23 @@ var host = new HostBuilder()
         services.ConfigureFunctionsApplicationInsights();
 
         var connectionString = configuration["ConnectionStrings:Default"];
+        var databaseProvider = DatabaseProviderResolver.Resolve(
+            configuration[DatabaseProviderResolver.ConfigurationKey]);
+
         if (!string.IsNullOrEmpty(connectionString))
         {
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(connectionString));
+            {
+                switch (databaseProvider)
+                {
+                    case DatabaseProvider.Sqlite:
+                        options.UseSqlite(connectionString);
+                        break;
+                    default:
+                        options.UseSqlServer(connectionString);
+                        break;
+                }
+            });
         }
 
         services.AddIdentityCore<User>(options =>
@@ -85,13 +100,35 @@ var host = new HostBuilder()
     })
     .Build();
 
-// ロールを冪等に作成
+// DB スキーマの用意（SQLite のみ）とロール・初期管理者の冪等なシード
 using (var scope = host.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole<Guid>>>();
+    var services = scope.ServiceProvider;
+    var startupLogger = services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    var startupConfiguration = services.GetRequiredService<IConfiguration>();
+    var provider = DatabaseProviderResolver.Resolve(
+        startupConfiguration[DatabaseProviderResolver.ConfigurationKey]);
+
+    var dbContext = services.GetService<AppDbContext>();
+    if (dbContext is not null)
+    {
+        await DatabaseInitializer.InitializeAsync(dbContext, provider, startupLogger);
+    }
+
+    var roleManager = services.GetService<RoleManager<IdentityRole<Guid>>>();
     if (roleManager is not null)
     {
         await RoleSeeder.SeedAsync(roleManager);
+    }
+
+    var userManager = services.GetService<UserManager<User>>();
+    if (userManager is not null)
+    {
+        await AdminSeeder.SeedAsync(
+            userManager,
+            startupConfiguration[AdminSeeder.EmailConfigurationKey],
+            startupConfiguration[AdminSeeder.PasswordConfigurationKey],
+            startupLogger);
     }
 }
 

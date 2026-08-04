@@ -57,11 +57,20 @@ Prioritize correctness over speed at all times:
 | Layer | Technology | Notes |
 |---|---|---|
 | Frontend | Vanilla JS SPA | fetch API, DOM操作中心。ライブラリ最小限 |
-| Hosting (static) | Azure Storage Account 静的 Web サイト | HTTPS、低コスト |
-| Backend (API) | Azure Functions (.NET 8 Isolated Worker) | HTTP Trigger。Consumption Plan で独立デプロイ |
-| Database | Azure SQL Database (Free tier) | SQL Server |
+| Hosting (static) | nginx (ラズパイ) / Azure Storage Account | ラズパイ主体。Azure 資産も維持 |
+| Backend (API) | Azure Functions (.NET 8 Isolated Worker) | HTTP Trigger。ラズパイでは Core Tools + systemd で常駐 |
+| Database | **SQLite** (ラズパイ) / Azure SQL Database | `Database:Provider` 設定で切替（既定 `SqlServer`） |
 | Auth | ASP.NET Identity | JWT Bearer Token。メール + パスワード (MVP) |
-| CI/CD | GitHub Actions | フロントエンド・API を独立してデプロイ |
+| CI/CD | GitHub Actions | `ci.yml` のみ自動。デプロイは手動実行 (`workflow_dispatch`) |
+
+### ローカル実行（Raspberry Pi）
+
+主たる運用環境。`deploy/raspi/setup.sh` で nginx + SQLite + systemd を一括構成する。
+詳細は `docs/RASPBERRY_PI.md` を参照。
+
+- **64bit OS 必須**（.NET 8 は 32bit ARM 非対応）
+- SQLite のスキーマは起動時に `EnsureCreated()` で生成される。**モデル変更には追従しない**
+- nginx が `/api/` を `127.0.0.1:7071` へ中継するため同一オリジン。`AllowedOrigins` は不要
 
 ---
 
@@ -69,6 +78,7 @@ Prioritize correctness over speed at all times:
 
 ```
 menucraft/
+├── deploy/raspi/        # Raspberry Pi 用 (setup.sh, deploy.sh, backup.sh, systemd, nginx)
 ├── src/
 │   ├── client/          # Vanilla JS SPA → Azure Storage Account 静的 Web サイト
 │   │   ├── index.html
@@ -145,6 +155,12 @@ az deployment group create --resource-group <rg> --template-file infra/main.bice
 | MealPlans | POST | `/api/mealplans/auto-fill` | 空きセルのみ自動埋め |
 | Shopping | GET | `/api/shopping-list?weekStart={date}` | 買い物リスト生成・取得 |
 | Shopping | PUT | `/api/shopping-list/check` | チェック状態更新 |
+| Management | GET/PUT/DELETE | `/api/management/**` | 管理画面 API（Admin のみ） |
+
+> **ルート命名の制約**: `admin/` で始まる HTTP Trigger ルートは使用できない。
+> Azure Functions ホストが `/admin/*` を組み込みの管理エンドポイントとして予約しており、
+> 「The specified route conflicts with one or more built in routes」で関数の登録に失敗する。
+> 管理系は `management/` を使うこと。
 
 ---
 

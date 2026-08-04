@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily MenuCraft SQLite database backup
+Documentation=https://github.com/t-develo/MenuCraft/blob/main/docs/RASPBERRY_PI.md
+
+[Timer]
+# 毎日 04:00 に実行。負荷の集中を避けるため最大 30 分ずらす
+OnCalendar=*-*-* 04:00:00
+RandomizedDelaySec=30m
+# ラズパイが停止していて実行できなかった分は、次回起動時に補う
+Persistent=true
+
+[Install]
+WantedBy=timers.target

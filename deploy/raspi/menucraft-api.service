@@ -1,0 +1,33 @@
+[Unit]
+Description=MenuCraft API (Azure Functions isolated worker)
+Documentation=https://github.com/t-develo/MenuCraft/blob/main/docs/RASPBERRY_PI.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=menucraft
+Group=menucraft
+WorkingDirectory=/opt/menucraft/api
+EnvironmentFile=/etc/menucraft/menucraft.env
+ExecStart=/opt/menucraft/core-tools/func start --port 7071
+Restart=always
+RestartSec=10
+# func start に SIGINT を送るとホストとワーカーが正常終了する
+KillSignal=SIGINT
+TimeoutStopSec=30
+SyslogIdentifier=menucraft-api
+
+# --- ハードニング ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# SQLite の DB ファイルと Core Tools の作業ディレクトリのみ書き込みを許可
+ReadWritePaths=/var/lib/menucraft /opt/menucraft/api
+
+[Install]
+WantedBy=multi-user.target
