@@ -101,7 +101,7 @@ menucraft/
 
 ## Commands
 
-### Backend (Azure Functions / .NET 10)
+### Backend (Azure Functions / .NET 8)
 
 ```bash
 # 依存関係の復元

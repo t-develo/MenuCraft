@@ -23,6 +23,10 @@ DOTNET_ROOT_DIR="/usr/share/dotnet"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ASSETS_DIR="${REPO_ROOT}/deploy/raspi"
+API_RUNTIMECONFIG_NAME="MenuCraft.Api.runtimeconfig.json"
+
+# shellcheck source=deploy/raspi/common.sh
+source "${ASSETS_DIR}/common.sh"
 
 DO_PULL=0
 [[ "${1:-}" == "--pull" ]] && DO_PULL=1
@@ -51,6 +55,21 @@ DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 \
     --configuration Release \
     --output "${BUILD_DIR}" \
   || die "ビルドに失敗しました。既存のサービスは停止していません。"
+
+# 発行成果物が要求するランタイムが実在するか、サービスを止める前に確認する。
+# .NET を新しいメジャーバージョンへ入れ替えた環境では、ビルドは通っても
+# 実行時に worker が "dotnet exited with code 150" で起動できなくなる。
+RUNTIME_VERSION="$(menucraft_required_runtime_version "${BUILD_DIR}/${API_RUNTIMECONFIG_NAME}")" \
+  || die "要求ランタイムを判定できませんでした: ${BUILD_DIR}/${API_RUNTIMECONFIG_NAME}"
+[[ -n "${RUNTIME_VERSION}" ]] \
+  || die "要求ランタイムを判定できませんでした: ${BUILD_DIR}/${API_RUNTIMECONFIG_NAME}"
+if ! menucraft_has_dotnet_runtime "${DOTNET_ROOT_DIR}/dotnet" "${RUNTIME_VERSION}"; then
+  warn "インストール済みのランタイム:"
+  "${DOTNET_ROOT_DIR}/dotnet" --list-runtimes >&2 2>/dev/null || true
+  die ".NET ${RUNTIME_VERSION} ランタイムがありません。既存のサービスは停止していません。
+対処: sudo ./deploy/raspi/setup.sh を実行するか、次を実行してください:
+  $(menucraft_runtime_install_hint "${RUNTIME_VERSION}" "${DOTNET_ROOT_DIR}")"
+fi
 
 # ビルド成功後にはじめてサービスを止める（失敗時のダウンタイムを避ける）
 log "menucraft-api を停止しています"
@@ -101,5 +120,7 @@ done
 
 warn "ヘルスチェックに失敗しました。直近のログを表示します:"
 journalctl -u menucraft-api -n 40 --no-pager >&2 || true
+warn "インストール済みの .NET ランタイム:"
+"${DOTNET_ROOT_DIR}/dotnet" --list-runtimes >&2 2>/dev/null || true
 warn "続きのログ: sudo journalctl -u menucraft-api -n 100 --no-pager"
 exit 1
