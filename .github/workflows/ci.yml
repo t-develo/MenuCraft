@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   TEST_PROJECT_PATH: 'tests/api.Tests'
 
 jobs:

@@ -19,7 +19,7 @@ Use **xUnit** as the primary testing framework (NUnit is acceptable if the proje
 <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
 <PackageReference Include="Moq" Version="4.*" />
 <PackageReference Include="FluentAssertions" Version="6.*" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.*" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.*" />
 <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
 ```
 

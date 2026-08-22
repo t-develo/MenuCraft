@@ -42,7 +42,7 @@ If `dotnet` is not found in the environment, install it first:
 
 ```bash
 # Check if dotnet is available
-dotnet --version 2>/dev/null || apt-get install -y dotnet-sdk-8.0
+dotnet --version 2>/dev/null || apt-get install -y dotnet-sdk-10.0
 
 # Then verify the build
 dotnet build src/api/
@@ -50,7 +50,7 @@ dotnet build src/api/
 
 **Rules:**
 - Never skip this step — a passing build is the minimum bar before committing
-- If `dotnet` is missing, install it via `apt-get install -y dotnet-sdk-8.0` before proceeding
+- If `dotnet` is missing, install it via `apt-get install -y dotnet-sdk-10.0` before proceeding
 - Fix all build errors before committing; do not commit broken code
 - This applies to any change: `.cs` files, `.csproj` files, `host.json`, etc.
 

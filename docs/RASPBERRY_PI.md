@@ -18,7 +18,7 @@ Azure 版との違いは次のとおり。
 
 ### 必須: 64bit OS
 
-**.NET 8 は 32bit ARM (armv7l) をサポートしていません。** 64bit 版の OS が必要です。
+**.NET は 32bit ARM (armv7l) をサポートしていません。** 64bit 版の OS が必要です。
 
 ```bash
 uname -m
@@ -76,10 +76,10 @@ sudo ./deploy/raspi/setup.sh
 
 ### .NET のバージョンについて
 
-API は `src/api/MenuCraft.Api.csproj` の `TargetFramework`（現在 `net8.0`）でビルドされ、
+API は `src/api/MenuCraft.Api.csproj` の `TargetFramework`（現在 `net10.0`）でビルドされ、
 **実行にも同じメジャーバージョンのランタイムが必要**です。.NET は既定でメジャーバージョンを
-跨いでロールフォワードしないため、新しい .NET（例: .NET 10）だけが入っている環境では
-ビルドは通っても worker が起動できません。
+跨いでロールフォワードしないため、別のメジャーバージョン（例: .NET 8）だけが入っている
+環境では、ビルドは通っても worker が起動できません。
 
 `setup.sh` はこれを検出し、必要なランタイムを side-by-side で追加インストールします。
 既存の .NET は削除・変更しません。
@@ -342,17 +342,17 @@ grep -A2 '"framework"' /opt/menucraft/api/MenuCraft.Api.runtimeconfig.json
 /usr/share/dotnet/dotnet --list-runtimes
 ```
 
-`Microsoft.NETCore.App` の要求バージョン系列（例: `8.0.0` なら 8.x）が一覧に無ければ原因確定です。
+`Microsoft.NETCore.App` の要求バージョン系列（例: `10.0.0` なら 10.x）が一覧に無ければ原因確定です。
 .NET は既定でメジャーバージョンを跨いでロールフォワードしないため、
-.NET 10 だけが入っていても net8.0 のアプリは動きません。
+.NET 8 だけが入っている環境では net10.0 のアプリは動きません（逆も同じ）。
 
 ```bash
 # setup.sh が side-by-side で追加インストールします（既存の .NET はそのまま）
 sudo ./deploy/raspi/setup.sh
 
-# 手動で入れる場合
+# 手動で入れる場合（バージョンは runtimeconfig.json の要求に合わせる）
 curl -fsSL https://dot.net/v1/dotnet-install.sh \
-  | sudo bash -s -- --channel 8.0 --runtime dotnet --install-dir /usr/share/dotnet
+  | sudo bash -s -- --channel 10.0 --runtime dotnet --install-dir /usr/share/dotnet
 sudo systemctl restart menucraft-api
 ```
 

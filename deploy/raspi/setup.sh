@@ -12,7 +12,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # 設定
 # ---------------------------------------------------------------------------
-CORE_TOOLS_VERSION="4.12.1"
+CORE_TOOLS_VERSION="4.13.0"
 
 APP_USER="menucraft"
 APP_GROUP="menucraft"
@@ -59,7 +59,7 @@ preflight() {
   arch="$(uname -m)"
   if [[ "${arch}" != "aarch64" && "${arch}" != "x86_64" ]]; then
     die "アーキテクチャ ${arch} は非対応です。
-.NET 8 は 32bit ARM (armv7l) をサポートしていません。
+.NET は 32bit ARM (armv7l) をサポートしていません。
 Raspberry Pi OS の 64bit 版 (arm64) を使用してください。
 確認: uname -m の結果が aarch64 になっている必要があります。"
   fi
