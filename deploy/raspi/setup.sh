@@ -23,6 +23,10 @@ API_DIR="${INSTALL_ROOT}/api"
 CORE_TOOLS_DIR="${INSTALL_ROOT}/core-tools"
 WEB_ROOT="/var/www/menucraft"
 DATA_DIR="/var/lib/menucraft"
+# Core Tools が $HOME/.azurefunctions を作るための書き込み可能なホーム。
+# menucraft ユーザーの既定ホーム (/opt/menucraft) は systemd の
+# ProtectSystem=strict で読み取り専用になるため使えない。
+RUNTIME_HOME="${DATA_DIR}/home"
 CONFIG_DIR="/etc/menucraft"
 ENV_FILE="${CONFIG_DIR}/menucraft.env"
 BACKUP_DIR="/var/backups/menucraft"
@@ -152,10 +156,12 @@ create_user_and_dirs() {
     log "ユーザー ${APP_USER} を作成しました"
   fi
 
-  mkdir -p "${API_DIR}" "${CORE_TOOLS_DIR}" "${WEB_ROOT}" "${DATA_DIR}" "${CONFIG_DIR}" "${BACKUP_DIR}"
+  mkdir -p "${API_DIR}" "${CORE_TOOLS_DIR}" "${WEB_ROOT}" "${DATA_DIR}" "${RUNTIME_HOME}" \
+           "${CONFIG_DIR}" "${BACKUP_DIR}"
 
   chown -R "${APP_USER}:${APP_GROUP}" "${INSTALL_ROOT}" "${DATA_DIR}" "${BACKUP_DIR}"
   chmod 750 "${DATA_DIR}" "${BACKUP_DIR}"
+  chmod 700 "${RUNTIME_HOME}"
 
   chown root:"${APP_GROUP}" "${CONFIG_DIR}"
   chmod 750 "${CONFIG_DIR}"
@@ -289,8 +295,9 @@ verify() {
   done
 
   if [[ ${ok} -ne 1 ]]; then
-    warn "API のヘルスチェックに失敗しました。ログを確認してください:"
-    warn "  sudo journalctl -u menucraft-api -n 50 --no-pager"
+    warn "API のヘルスチェックに失敗しました。直近のログを表示します:"
+    journalctl -u menucraft-api -n 40 --no-pager >&2 || true
+    warn "続きのログ: sudo journalctl -u menucraft-api -n 100 --no-pager"
     die "セットアップは完了しませんでした"
   fi
   log "API 直接アクセス (127.0.0.1:7071/api/health) — OK"

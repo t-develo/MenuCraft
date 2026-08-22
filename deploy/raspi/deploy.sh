@@ -15,6 +15,9 @@ APP_GROUP="menucraft"
 INSTALL_ROOT="/opt/menucraft"
 API_DIR="${INSTALL_ROOT}/api"
 WEB_ROOT="/var/www/menucraft"
+DATA_DIR="/var/lib/menucraft"
+# Core Tools 用の書き込み可能な HOME (menucraft-api.service の Environment=HOME=)
+RUNTIME_HOME="${DATA_DIR}/home"
 ENV_FILE="/etc/menucraft/menucraft.env"
 DOTNET_ROOT_DIR="/usr/share/dotnet"
 
@@ -68,6 +71,11 @@ chown -R www-data:www-data "${WEB_ROOT}"
 find "${WEB_ROOT}" -type d -exec chmod 755 {} +
 find "${WEB_ROOT}" -type f -exec chmod 644 {} +
 
+# 旧バージョンからの更新でも Core Tools の HOME を確実に用意する
+mkdir -p "${RUNTIME_HOME}"
+chown "${APP_USER}:${APP_GROUP}" "${RUNTIME_HOME}"
+chmod 700 "${RUNTIME_HOME}"
+
 # systemd / nginx の設定に変更があれば取り込む
 log "サービス定義を同期しています"
 install -m 644 "${ASSETS_DIR}/menucraft-api.service"    /etc/systemd/system/
@@ -91,6 +99,7 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 
-warn "ヘルスチェックに失敗しました。ログを確認してください:"
-warn "  sudo journalctl -u menucraft-api -n 50 --no-pager"
+warn "ヘルスチェックに失敗しました。直近のログを表示します:"
+journalctl -u menucraft-api -n 40 --no-pager >&2 || true
+warn "続きのログ: sudo journalctl -u menucraft-api -n 100 --no-pager"
 exit 1

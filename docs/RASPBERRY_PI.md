@@ -93,6 +93,7 @@ sudo ./deploy/raspi/setup.sh
 | `/opt/menucraft/backup.sh` | バックアップスクリプト |
 | `/var/www/menucraft/` | フロントエンドの静的ファイル |
 | `/var/lib/menucraft/menucraft.db` | **SQLite データベース（唯一の永続データ）** |
+| `/var/lib/menucraft/home/` | Core Tools 用の `HOME`（`.azurefunctions` などの作業ファイル）|
 | `/etc/menucraft/menucraft.env` | 環境変数・シークレット (640, root:menucraft) |
 | `/var/backups/menucraft/` | DB バックアップ (gzip, 14世代) |
 
@@ -311,6 +312,31 @@ sudo journalctl -u menucraft-api -n 80 --no-pager
 | `unable to open database file` | `/var/lib/menucraft` の所有者を確認: `sudo chown -R menucraft:menucraft /var/lib/menucraft` |
 | `Database:Provider の値 ... は不正です` | `Database__Provider` は `Sqlite` か `SqlServer` のみ |
 | `Address already in use` | 7071 番ポートが使用中。`sudo ss -tlnp \| grep 7071` |
+| `Read-only file system : '/opt/menucraft/.azurefunctions'` | Core Tools の `HOME` が読み取り専用。下記参照 |
+
+#### `Read-only file system : '/opt/menucraft/.azurefunctions'` で起動ループする
+
+Core Tools は起動時に `$HOME/.azurefunctions` を作成します。`menucraft` ユーザーの
+既定ホームは `/opt/menucraft` ですが、`menucraft-api.service` の `ProtectSystem=strict`
+により `/opt` は読み取り専用のため、書き込みに失敗して `status=6/ABRT` で再起動を繰り返します。
+
+現在のユニットは `HOME=/var/lib/menucraft/home` を指定してこれを回避します。
+古いユニットのまま動いている場合は最新のリポジトリで再デプロイしてください。
+
+```bash
+cd ~/MenuCraft && git pull
+sudo ./deploy/raspi/deploy.sh
+# または初回セットアップからやり直す場合
+sudo ./deploy/raspi/setup.sh
+```
+
+手動で確認する場合:
+
+```bash
+systemctl show menucraft-api -p Environment | tr ' ' '\n' | grep HOME
+# → HOME=/var/lib/menucraft/home であること
+ls -ld /var/lib/menucraft/home   # menucraft:menucraft 所有であること
+```
 
 ### ブラウザから開けない
 

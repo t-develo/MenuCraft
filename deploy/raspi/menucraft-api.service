@@ -10,6 +10,21 @@ User=menucraft
 Group=menucraft
 WorkingDirectory=/opt/menucraft/api
 EnvironmentFile=/etc/menucraft/menucraft.env
+
+# Core Tools は起動時に $HOME/.azurefunctions を作成する (FirstTimeCliExperience)。
+# menucraft ユーザーの既定ホームは /opt/menucraft だが、下の ProtectSystem=strict で
+# 読み取り専用になるため "Read-only file system" で異常終了する。
+# 書き込み可能な /var/lib/menucraft 配下を HOME として与えること。
+Environment=HOME=/var/lib/menucraft/home
+Environment=DOTNET_CLI_HOME=/var/lib/menucraft/home
+Environment=XDG_CONFIG_HOME=/var/lib/menucraft/home/.config
+Environment=XDG_DATA_HOME=/var/lib/menucraft/home/.local/share
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+Environment=DOTNET_NOLOGO=1
+Environment=FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1
+
+# setup.sh を通さず systemd 側だけ更新された場合でも HOME を確実に用意する
+ExecStartPre=/usr/bin/install -d -m 0700 /var/lib/menucraft/home
 ExecStart=/opt/menucraft/core-tools/func start --port 7071
 Restart=always
 RestartSec=10
@@ -26,7 +41,8 @@ ProtectHome=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
-# SQLite の DB ファイルと Core Tools の作業ディレクトリのみ書き込みを許可
+# SQLite の DB ファイル・Core Tools の HOME・発行成果物のみ書き込みを許可
+# (/var/lib/menucraft/home は上の Environment=HOME= の書き込み先)
 ReadWritePaths=/var/lib/menucraft /opt/menucraft/api
 
 [Install]
