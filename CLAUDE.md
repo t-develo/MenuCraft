@@ -58,7 +58,7 @@ Prioritize correctness over speed at all times:
 |---|---|---|
 | Frontend | Vanilla JS SPA | fetch API, DOM操作中心。ライブラリ最小限 |
 | Hosting (static) | nginx (ラズパイ) / Azure Storage Account | ラズパイ主体。Azure 資産も維持 |
-| Backend (API) | Azure Functions (.NET 8 Isolated Worker) | HTTP Trigger。ラズパイでは Core Tools + systemd で常駐 |
+| Backend (API) | Azure Functions (.NET 10 Isolated Worker) | HTTP Trigger。ラズパイでは Core Tools + systemd で常駐 |
 | Database | **SQLite** (ラズパイ) / Azure SQL Database | `Database:Provider` 設定で切替（既定 `SqlServer`） |
 | Auth | ASP.NET Identity | JWT Bearer Token。メール + パスワード (MVP) |
 | CI/CD | GitHub Actions | `ci.yml` のみ自動。デプロイは手動実行 (`workflow_dispatch`) |
@@ -68,7 +68,7 @@ Prioritize correctness over speed at all times:
 主たる運用環境。`deploy/raspi/setup.sh` で nginx + SQLite + systemd を一括構成する。
 詳細は `docs/RASPBERRY_PI.md` を参照。
 
-- **64bit OS 必須**（.NET 8 は 32bit ARM 非対応）
+- **64bit OS 必須**（.NET は 32bit ARM 非対応）
 - SQLite のスキーマは起動時に `EnsureCreated()` で生成される。**モデル変更には追従しない**
 - nginx が `/api/` を `127.0.0.1:7071` へ中継するため同一オリジン。`AllowedOrigins` は不要
 
@@ -87,7 +87,7 @@ menucraft/
 │   │   └── js/
 │   │       ├── config.js  # API_BASE_URL 等の環境設定
 │   │       └── api/
-│   └── api/             # Azure Functions (.NET 8 Isolated Worker)
+│   └── api/             # Azure Functions (.NET 10 Isolated Worker)
 │       ├── Functions/
 │       ├── Services/
 │       ├── Middleware/   # JWT認証 + セキュリティヘッダー

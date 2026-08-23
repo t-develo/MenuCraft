@@ -97,7 +97,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: appServicePlan.id
     httpsOnly: true
     siteConfig: {
-      netFrameworkVersion: 'v8.0'
+      netFrameworkVersion: 'v10.0'
       cors: {
         allowedOrigins: empty(allowedOrigins) ? [] : [allowedOrigins]
         supportCredentials: false

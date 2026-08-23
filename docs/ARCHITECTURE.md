@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────┐    ┌─────────────────────────────────┐
 │  Azure Storage Account          │    │  Azure Functions                │
-│  静的 Web サイト                  │    │  Consumption Plan (.NET 8)      │
+│  静的 Web サイト                  │    │  Consumption Plan (.NET 10)      │
 │  ┌───────────────────────────┐  │    │  ┌───────────────────────────┐  │
 │  │  Vanilla JS SPA           │  │    │  │  Isolated Worker          │  │
 │  │  - index.html             │  │    │  │  - AuthFunction           │  │
@@ -34,7 +34,7 @@
 |----------|------|----------|
 | Frontend | Vanilla JS SPA | ビルドステップ不要、シンプル、学習コスト低 |
 | Hosting (Frontend) | Azure Storage Account 静的 Web サイト | 低コスト、独立デプロイ |
-| API | Azure Functions (.NET 8 Isolated) | Consumption Plan、独立デプロイ、CORS 対応 |
+| API | Azure Functions (.NET 10 Isolated) | Consumption Plan、独立デプロイ、CORS 対応 |
 | Database | Azure SQL Database (Free) | RDB、Identity 統合、Free Tier |
 | Auth | ASP.NET Identity + JWT | 標準的な認証基盤、PBKDF2 ハッシュ |
 | ORM | Entity Framework Core 8 | .NET 標準 ORM、Code First |

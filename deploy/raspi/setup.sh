@@ -12,8 +12,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # 設定
 # ---------------------------------------------------------------------------
-CORE_TOOLS_VERSION="4.12.1"
-DOTNET_CHANNEL="8.0"
+CORE_TOOLS_VERSION="4.13.0"
 
 APP_USER="menucraft"
 APP_GROUP="menucraft"
@@ -35,6 +34,11 @@ DOTNET_ROOT_DIR="/usr/share/dotnet"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ASSETS_DIR="${REPO_ROOT}/deploy/raspi"
+API_CSPROJ="${REPO_ROOT}/src/api/MenuCraft.Api.csproj"
+API_RUNTIMECONFIG_NAME="MenuCraft.Api.runtimeconfig.json"
+
+# shellcheck source=deploy/raspi/common.sh
+source "${ASSETS_DIR}/common.sh"
 
 # ---------------------------------------------------------------------------
 # ログ出力
@@ -55,7 +59,7 @@ preflight() {
   arch="$(uname -m)"
   if [[ "${arch}" != "aarch64" && "${arch}" != "x86_64" ]]; then
     die "アーキテクチャ ${arch} は非対応です。
-.NET 8 は 32bit ARM (armv7l) をサポートしていません。
+.NET は 32bit ARM (armv7l) をサポートしていません。
 Raspberry Pi OS の 64bit 版 (arm64) を使用してください。
 確認: uname -m の結果が aarch64 になっている必要があります。"
   fi
@@ -81,24 +85,57 @@ install_packages() {
 }
 
 # ---------------------------------------------------------------------------
-# 3. .NET SDK
+# 3. .NET SDK / ランタイム
 # ---------------------------------------------------------------------------
-install_dotnet() {
-  if [[ -x "${DOTNET_ROOT_DIR}/dotnet" ]]; then
-    log ".NET は導入済みです ($("${DOTNET_ROOT_DIR}/dotnet" --version))"
-    return
-  fi
-
-  log ".NET ${DOTNET_CHANNEL} SDK をインストールしています（数分かかります）"
+# dotnet-install.sh を取得して任意の引数で実行する（インストール先は固定）
+run_dotnet_install() {
   local installer
   installer="$(mktemp)"
-  curl -fsSL https://dot.net/v1/dotnet-install.sh -o "${installer}"
+  curl -fsSL --retry 3 https://dot.net/v1/dotnet-install.sh -o "${installer}" \
+    || { rm -f "${installer}"; die "dotnet-install.sh の取得に失敗しました"; }
   chmod +x "${installer}"
-  "${installer}" --channel "${DOTNET_CHANNEL}" --install-dir "${DOTNET_ROOT_DIR}"
+  "${installer}" --install-dir "${DOTNET_ROOT_DIR}" "$@" \
+    || { rm -f "${installer}"; die ".NET のインストールに失敗しました ($*)"; }
   rm -f "${installer}"
+}
 
+install_dotnet() {
+  local required
+  required="$(menucraft_target_dotnet_version "${API_CSPROJ}")" \
+    || die "TargetFramework を取得できませんでした: ${API_CSPROJ}"
+  [[ -n "${required}" ]] || die "TargetFramework を取得できませんでした: ${API_CSPROJ}"
+
+  if [[ -x "${DOTNET_ROOT_DIR}/dotnet" ]]; then
+    log ".NET は導入済みです ($("${DOTNET_ROOT_DIR}/dotnet" --version 2>/dev/null || echo "バージョン不明"))"
+  else
+    log ".NET ${required} SDK をインストールしています（数分かかります）"
+    run_dotnet_install --channel "${required}"
+  fi
+
+  # ビルド用の SDK。既存の SDK が新しくても net${required} はターゲットにできる
+  if ! menucraft_has_dotnet_sdk "${DOTNET_ROOT_DIR}/dotnet"; then
+    log ".NET SDK が見つかりません。SDK ${required} をインストールします"
+    run_dotnet_install --channel "${required}"
+    menucraft_has_dotnet_sdk "${DOTNET_ROOT_DIR}/dotnet" \
+      || die ".NET SDK のインストールに失敗しました"
+  fi
+
+  # 実行用のランタイム。.NET は既定でメジャーバージョンを跨いでロールフォワード
+  # しないため、TargetFramework と同じ ${required} 系のランタイムが必須。
+  # これが無いと worker が "dotnet exited with code 150" で起動できない。
+  # 新しい .NET が既に入っている環境（例: .NET 10 のみ）でも side-by-side で追加する
+  if ! menucraft_has_dotnet_runtime "${DOTNET_ROOT_DIR}/dotnet" "${required}"; then
+    log ".NET ${required} ランタイムが見つかりません。side-by-side で追加インストールします"
+    run_dotnet_install --channel "${required}" --runtime dotnet
+    menucraft_has_dotnet_runtime "${DOTNET_ROOT_DIR}/dotnet" "${required}" \
+      || die ".NET ${required} ランタイムのインストールに失敗しました"
+  fi
+
+  # func は worker を PATH 上の dotnet で起動する。/usr/local/bin は
+  # systemd 既定の PATH で /usr/bin より優先されるため、参照先を固定できる
   ln -sf "${DOTNET_ROOT_DIR}/dotnet" /usr/local/bin/dotnet
-  log ".NET $("${DOTNET_ROOT_DIR}/dotnet" --version) をインストールしました"
+
+  log ".NET 準備完了 — ランタイム: $("${DOTNET_ROOT_DIR}/dotnet" --list-runtimes | grep '^Microsoft.NETCore.App' | tr '\n' ' ')"
 }
 
 # ---------------------------------------------------------------------------
@@ -209,7 +246,30 @@ publish_api() {
   rm -f "${API_DIR}/local.settings.json"
 
   chown -R "${APP_USER}:${APP_GROUP}" "${API_DIR}"
+  verify_publish_runtime "${API_DIR}/${API_RUNTIMECONFIG_NAME}"
   log "API を ${API_DIR} に配置しました"
+}
+
+# 発行成果物が要求するランタイムが実在するか検証する。
+# TargetFramework を上げた際の取りこぼしを、起動ループになる前に検出する。
+verify_publish_runtime() {
+  local runtimeconfig="$1"
+  [[ -f "${runtimeconfig}" ]] || die "発行成果物に runtimeconfig.json がありません: ${runtimeconfig}"
+
+  local required
+  required="$(menucraft_required_runtime_version "${runtimeconfig}")"
+  [[ -n "${required}" ]] || die "要求ランタイムを判定できませんでした: ${runtimeconfig}"
+
+  menucraft_has_dotnet_runtime "${DOTNET_ROOT_DIR}/dotnet" "${required}" && return 0
+
+  die "発行成果物は .NET ${required} ランタイムを要求しますが、インストールされていません。
+このまま起動すると worker が 'dotnet exited with code 150' で失敗します。
+
+インストール済みのランタイム:
+$("${DOTNET_ROOT_DIR}/dotnet" --list-runtimes 2>/dev/null || echo "  (取得できませんでした)")
+
+対処:
+  $(menucraft_runtime_install_hint "${required}" "${DOTNET_ROOT_DIR}")"
 }
 
 # ---------------------------------------------------------------------------
@@ -297,6 +357,8 @@ verify() {
   if [[ ${ok} -ne 1 ]]; then
     warn "API のヘルスチェックに失敗しました。直近のログを表示します:"
     journalctl -u menucraft-api -n 40 --no-pager >&2 || true
+    warn "インストール済みの .NET ランタイム:"
+    "${DOTNET_ROOT_DIR}/dotnet" --list-runtimes >&2 2>/dev/null || true
     warn "続きのログ: sudo journalctl -u menucraft-api -n 100 --no-pager"
     die "セットアップは完了しませんでした"
   fi

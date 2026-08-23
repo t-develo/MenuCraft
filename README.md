@@ -14,7 +14,7 @@ Web / YouTube / Instagram で見つけたレシピを一箇所に集約し、1�
 |---|---|
 | Frontend | Vanilla JS SPA（ビルドステップなし） |
 | Hosting (Frontend) | nginx（ラズパイ） / Azure Storage Account 静的 Web サイト |
-| Backend (API) | Azure Functions (.NET 8 Isolated Worker) |
+| Backend (API) | Azure Functions (.NET 10 Isolated Worker) |
 | Database | **SQLite**（ラズパイ） / Azure SQL Database (Free tier) |
 | Auth | ASP.NET Identity + JWT Bearer Token |
 | CI/CD | GitHub Actions（ビルド・テストのみ自動。デプロイは手動実行） |
@@ -201,7 +201,7 @@ menucraft/
 │   │       ├── api/         # APIクライアント (apiFetch, auth, groups, recipes, mealplans, shopping)
 │   │       ├── components/  # UIコンポーネント (recipeCard, recipeForm)
 │   │       └── pages/       # ページ (groupSetup, recipes, mealPlanBoard, shoppingList)
-│   └── api/                 # Azure Functions (.NET 8 Isolated Worker, Consumption Plan)
+│   └── api/                 # Azure Functions (.NET 10 Isolated Worker, Consumption Plan)
 │       ├── Functions/       # HTTPトリガー関数
 │       ├── Services/        # ビジネスロジック
 │       ├── Repositories/    # データアクセス層

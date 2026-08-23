@@ -18,7 +18,7 @@ Azure 版との違いは次のとおり。
 
 ### 必須: 64bit OS
 
-**.NET 8 は 32bit ARM (armv7l) をサポートしていません。** 64bit 版の OS が必要です。
+**.NET は 32bit ARM (armv7l) をサポートしていません。** 64bit 版の OS が必要です。
 
 ```bash
 uname -m
@@ -64,7 +64,7 @@ sudo ./deploy/raspi/setup.sh
 1. アーキテクチャ（aarch64）と systemd/apt の存在を確認
 2. `nginx` `sqlite3` `curl` `unzip` `rsync` `openssl` を APT でインストール
 3. 実行ユーザー `menucraft`（ログインシェルなし）と各ディレクトリを作成
-4. .NET 8 SDK を `/usr/share/dotnet` にインストール
+4. .NET を `/usr/share/dotnet` に用意（SDK と、`TargetFramework` に対応するランタイム）
 5. Azure Functions Core Tools (linux-arm64) を `/opt/menucraft/core-tools` にインストール
 6. `/etc/menucraft/menucraft.env` を生成し、JWT シークレットをランダム生成
 7. API をビルドして `/opt/menucraft/api` に配置
@@ -73,6 +73,16 @@ sudo ./deploy/raspi/setup.sh
 10. ヘルスチェックで疎通を確認
 
 **冪等です。** 途中で失敗した場合も、原因を解消してから再実行して構いません。
+
+### .NET のバージョンについて
+
+API は `src/api/MenuCraft.Api.csproj` の `TargetFramework`（現在 `net10.0`）でビルドされ、
+**実行にも同じメジャーバージョンのランタイムが必要**です。.NET は既定でメジャーバージョンを
+跨いでロールフォワードしないため、別のメジャーバージョン（例: .NET 8）だけが入っている
+環境では、ビルドは通っても worker が起動できません。
+
+`setup.sh` はこれを検出し、必要なランタイムを side-by-side で追加インストールします。
+既存の .NET は削除・変更しません。
 既存の `menucraft.env` とデータベースは上書きされません。
 
 ### 初回ログイン
@@ -313,6 +323,38 @@ sudo journalctl -u menucraft-api -n 80 --no-pager
 | `Database:Provider の値 ... は不正です` | `Database__Provider` は `Sqlite` か `SqlServer` のみ |
 | `Address already in use` | 7071 番ポートが使用中。`sudo ss -tlnp \| grep 7071` |
 | `Read-only file system : '/opt/menucraft/.azurefunctions'` | Core Tools の `HOME` が読み取り専用。下記参照 |
+| `dotnet exited with code 150` / `Failed to start language worker process` | 必要な .NET ランタイムが未インストール。下記参照 |
+
+#### `dotnet exited with code 150` で worker が起動しない
+
+`Microsoft.Azure.WebJobs.Script.Grpc: dotnet exited with code 150 (0x96)` は、
+isolated worker がマネージドコードに入る前に「要求するフレームワークが見つからない」で
+終了したことを意味します。ホストが worker の標準エラーを握り潰すため、
+journal には本当の理由が出ません。
+
+要求バージョンとインストール済みバージョンを比べます。
+
+```bash
+# アプリが要求するバージョン
+grep -A2 '"framework"' /opt/menucraft/api/MenuCraft.Api.runtimeconfig.json
+
+# インストール済みのランタイム
+/usr/share/dotnet/dotnet --list-runtimes
+```
+
+`Microsoft.NETCore.App` の要求バージョン系列（例: `10.0.0` なら 10.x）が一覧に無ければ原因確定です。
+.NET は既定でメジャーバージョンを跨いでロールフォワードしないため、
+.NET 8 だけが入っている環境では net10.0 のアプリは動きません（逆も同じ）。
+
+```bash
+# setup.sh が side-by-side で追加インストールします（既存の .NET はそのまま）
+sudo ./deploy/raspi/setup.sh
+
+# 手動で入れる場合（バージョンは runtimeconfig.json の要求に合わせる）
+curl -fsSL https://dot.net/v1/dotnet-install.sh \
+  | sudo bash -s -- --channel 10.0 --runtime dotnet --install-dir /usr/share/dotnet
+sudo systemctl restart menucraft-api
+```
 
 #### `Read-only file system : '/opt/menucraft/.azurefunctions'` で起動ループする
 
